@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A5 — XRPL SDK & Wallet Status</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg-alt: #0f1424;
+    --card: #141a2b;
+    --card-hover: #1a2238;
+    --border: #1f2940;
+    --border-strong: #2a3656;
+    --text: #e6edf6;
+    --text-dim: #8b95a8;
+    --text-faint: #5d6679;
+    --accent: #38bdf8;
+    --accent-dim: #0ea5e9;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --info: #818cf8;
+    --shadow: 0 10px 40px -10px rgba(0,0,0,0.6);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; background: radial-gradient(ellipse at top, #131a2e 0%, var(--bg) 50%) fixed; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace; font-size: 0.92em; }
+
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 40px 32px 80px; }
+
+  /* Hero */
+  .hero { padding: 32px 0 28px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  .hero-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; padding: 4px 10px; border: 1px solid var(--accent-dim); border-radius: 4px; margin-bottom: 18px; background: rgba(56,189,248,0.06); }
+  h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 12px; }
+  h1 span { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero-meta { color: var(--text-dim); font-size: 13px; display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; }
+  .hero-meta span strong { color: var(--text); font-weight: 600; }
+
+  /* KPI cards */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 24px 0 36px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-value { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .kpi-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .kpi.danger .kpi-value { color: var(--bad); }
+  .kpi.warn .kpi-value { color: var(--warn); }
+  .kpi.good .kpi-value { color: var(--good); }
+  .kpi.accent .kpi-value { color: var(--accent); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; overflow-x: auto; scrollbar-width: thin; }
+  .tab { padding: 11px 18px; background: transparent; border: none; color: var(--text-dim); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count { display: inline-block; margin-left: 6px; font-size: 11px; padding: 1px 7px; border-radius: 10px; background: var(--border); color: var(--text-dim); }
+  .tab.active .tab-count { background: rgba(56,189,248,0.15); color: var(--accent); }
+
+  /* Section header */
+  .sec { display: none; }
+  .sec.active { display: block; }
+  .sec-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+  .sec-head h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .sec-head p { color: var(--text-dim); margin-top: 6px; font-size: 13px; max-width: 700px; }
+
+  /* Filters */
+  .filter-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
+  .search { flex: 1; min-width: 240px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font-family: inherit; font-size: 13px; transition: border-color 0.15s; }
+  .search:focus { outline: none; border-color: var(--accent-dim); }
+  .chip-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 500; border: 1px solid var(--border); background: var(--card); color: var(--text-dim); cursor: pointer; transition: all 0.15s; user-select: none; }
+  .chip:hover { color: var(--text); border-color: var(--border-strong); }
+  .chip.on { background: rgba(56,189,248,0.12); color: var(--accent); border-color: var(--accent-dim); }
+
+  /* Table */
+  .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); text-align: left; padding: 12px 14px; background: var(--bg-alt); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap; }
+  thead th:hover { color: var(--text); }
+  thead th .sort-ind { color: var(--text-faint); margin-left: 4px; font-size: 10px; }
+  thead th.sort-asc .sort-ind, thead th.sort-desc .sort-ind { color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--card-hover); }
+  tbody tr.expanded { background: var(--card-hover); }
+  tbody td { padding: 12px 14px; vertical-align: top; font-size: 13px; }
+  tbody td.name { font-weight: 600; color: var(--text); }
+  tbody td.dim { color: var(--text-dim); }
+  tbody td .sub { display: block; font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+  .detail-row td { padding: 16px 20px 18px 20px; background: var(--bg-alt); border-top: 1px dashed var(--border); }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 12px; }
+  .detail-grid > div .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px; }
+  .detail-grid > div .val { color: var(--text); font-size: 13px; }
+  .detail-note { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-good { background: rgba(74,222,128,0.13); color: var(--good); }
+  .badge-warn { background: rgba(251,191,36,0.13); color: var(--warn); }
+  .badge-bad { background: rgba(248,113,113,0.13); color: var(--bad); }
+  .badge-info { background: rgba(129,140,248,0.13); color: var(--info); }
+  .badge-neutral { background: rgba(139,149,168,0.13); color: var(--text-dim); }
+  .badge-accent { background: rgba(56,189,248,0.13); color: var(--accent); }
+
+  .bus { font-weight: 700; font-size: 12px; padding: 1px 7px; border-radius: 4px; }
+  .bus-1 { background: rgba(248,113,113,0.15); color: var(--bad); }
+  .bus-2 { background: rgba(251,191,36,0.15); color: var(--warn); }
+  .bus-3 { background: rgba(74,222,128,0.13); color: var(--good); }
+
+  /* Headlines */
+  .headlines { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+  .hl { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 16px 18px; }
+  .hl.danger { border-left-color: var(--bad); }
+  .hl.warn { border-left-color: var(--warn); }
+  .hl.good { border-left-color: var(--good); }
+  .hl-num { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase; margin-bottom: 6px; }
+  .hl-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .hl-body { font-size: 13px; color: var(--text-dim); line-height: 1.55; }
+
+  /* Actions register */
+  .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .act { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .act-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .act-pri { font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 5px; letter-spacing: 0.04em; }
+  .pri-0 { background: rgba(248,113,113,0.18); color: var(--bad); }
+  .pri-1 { background: rgba(251,191,36,0.18); color: var(--warn); }
+  .pri-2 { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .pri-3 { background: rgba(129,140,248,0.15); color: var(--info); }
+  .pri-4 { background: rgba(74,222,128,0.13); color: var(--good); }
+  .pri-5 { background: rgba(139,149,168,0.13); color: var(--text-dim); }
+  .act-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+  .act ul { list-style: none; padding: 0; }
+  .act li { font-size: 13px; color: var(--text-dim); padding: 7px 0; border-bottom: 1px dashed var(--border); line-height: 1.5; }
+  .act li:last-child { border-bottom: none; }
+  .act li strong { color: var(--text); font-weight: 600; }
+
+  /* Overview cards */
+  .ov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .ov-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .ov-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .ov-card h3 .count { color: var(--accent); font-size: 22px; font-weight: 700; }
+  .ov-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: flex; margin: 8px 0 6px; }
+  .ov-bar > div { height: 100%; }
+  .ov-bar .good { background: var(--good); }
+  .ov-bar .warn { background: var(--warn); }
+  .ov-bar .bad { background: var(--bad); }
+  .ov-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-dim); }
+  .ov-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
+  /* COI banner */
+  .coi { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.25); border-left: 3px solid var(--warn); border-radius: 8px; padding: 14px 18px; margin: 24px 0 32px; font-size: 13px; color: var(--text-dim); }
+  .coi strong { color: var(--warn); }
+
+  /* Footer */
+  footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 12px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 40px 20px; color: var(--text-faint); font-size: 13px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .wrap { padding: 24px 18px 60px; }
+    h1 { font-size: 28px; }
+    .kpi-value { font-size: 24px; }
+    tbody td, thead th { padding: 9px 10px; font-size: 12px; }
+    .hide-mobile { display: none; }
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; color: black; }
+    .tabs, .filter-row, footer { display: none; }
+    .sec { display: block !important; page-break-before: always; }
+    .sec:first-of-type { page-break-before: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="hero-tag">A5 — Internal Status Report</span>
+    <h1>XRPL SDK &amp; Wallet <span>ecosystem health</span></h1>
+    <div class="hero-meta">
+      <span><strong>Prepared by</strong> Denis Angell, Director of Technology</span>
+      <span><strong>Date</strong> 20 May 2026</span>
+      <span><strong>Audience</strong> XRPL Foundation Director (internal)</span>
+      <span><strong>Asana</strong> <a href="https://app.asana.com/1/1213991914804721/project/1214503361909646/task/1214503343687042" target="_blank">A5 task</a></span>
+    </div>
+  </header>
+
+  <div class="coi">
+    <strong>Conflict-of-interest disclosure.</strong> Three SDKs in §SDKs (XrplCSharp, xrpl.csharp.unity, XRPLSwift) are maintained by the author through Transia-RnD. Funding, takeover, or archive decisions on these repos must be made by Foundation staff not involved in their maintenance.
+  </div>
+
+  <div class="kpis" id="kpiRow"></div>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <!-- Overview -->
+  <section class="sec active" data-sec="overview">
+    <div class="sec-head">
+      <div>
+        <h2>Executive summary</h2>
+        <p>The XRPL client-side stack is broader and more active than 18 months ago — but the surface is still dangerously concentrated. Two SDKs (xrpl.js, xrpl-py) are credibly tracking the 2025–26 amendment set. Most of the others are bus-factor-1, lagging on amendment coverage, or both.</p>
+      </div>
+    </div>
+
+    <div class="ov-grid" id="ovGrid"></div>
+
+    <h2 style="margin: 28px 0 14px; font-size: 18px;">Headline findings</h2>
+    <div class="headlines" id="headlines"></div>
+  </section>
+
+  <!-- SDKs -->
+  <section class="sec" data-sec="sdks">
+    <div class="sec-head">
+      <div>
+        <h2>SDKs</h2>
+        <p>32 SDKs across 12+ languages — official XRPLF, community ports, and language-specific projects. Bus factor &amp; amendment coverage per item.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input type="search" class="search" placeholder="Search SDKs…" data-target="sdks">
+      <div class="chip-filters" data-target="sdks">
+        <span class="chip on" data-filter="all">All</span>
+        <span class="chip" data-filter="official">Official / XRPLF</span>
+        <span class="chip" data-filter="active">Active</span>
+        <span class="chip" data-filter="stale">Stale / Dead</span>
+        <span class="chip" data-filter="bf1">Bus factor 1</span>
+        <span class="chip" data-filter="sponsor">Sponsor candidate</span>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="tblSdks"></table></div>
+  </section>
+
+  <!-- Wallets -->
+  <section class="sec" data-sec="wallets">
+    <div class="sec-head">
+      <div>
+        <h2>Wallet apps</h2>
+        <p>42 wallet apps — XRPL-native, hardware, multi-asset software, custodial, plus the Root Network wallets (Girin, FuturePass) and the newly-added APAC, payments-integration and hardware finds from the May sweep.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input type="search" class="search" placeholder="Search wallets…" data-target="wallets">
+      <div class="chip-filters" data-target="wallets">
+        <span class="chip on" data-filter="all">All</span>
+        <span class="chip" data-filter="xrpl-native">XRPL-native</span>
+        <span class="chip" data-filter="hardware">Hardware</span>
+        <span class="chip" data-filter="multi-asset">Multi-asset</span>
+        <span class="chip" data-filter="custodial">Custodial</span>
+        <span class="chip" data-filter="risk">Risk flagged</span>
+        <span class="chip" data-filter="new">New in May sweep</span>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="tblWallets"></table></div>
+  </section>
+
+  <!-- Integration libs -->
+  <section class="sec" data-sec="libs">
+    <div class="sec-head">
+      <div>
+        <h2>Wallet integration libraries</h2>
+        <p>Dev-facing SDKs dapps use to connect to wallets — Xaman, Crossmark, GemWallet, Ledger, Reown/WalletConnect, the XLS-72d Wallet Standard, XRPL-Connect, and Futureverse stack.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input type="search" class="search" placeholder="Search libraries…" data-target="libs">
+      <div class="chip-filters" data-target="libs">
+        <span class="chip on" data-filter="all">All</span>
+        <span class="chip" data-filter="active">Active</span>
+        <span class="chip" data-filter="stale">Stale</span>
+        <span class="chip" data-filter="sponsor">Sponsor candidate</span>
+        <span class="chip" data-filter="aggregator">Connect Kit / aggregator</span>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="tblLibs"></table></div>
+  </section>
+
+  <!-- Custody -->
+  <section class="sec" data-sec="custody">
+    <div class="sec-head">
+      <div>
+        <h2>Institutional custody</h2>
+        <p>Whether providers expose <strong>RAW XRPL signing</strong> (arbitrary transaction types) — not just XRP transfers. The single biggest blocker to institutional adoption of XRPL's new amendments.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input type="search" class="search" placeholder="Search custody providers…" data-target="custody">
+      <div class="chip-filters" data-target="custody">
+        <span class="chip on" data-filter="all">All</span>
+        <span class="chip" data-filter="raw-yes">Raw signing: Yes</span>
+        <span class="chip" data-filter="raw-no">Payment-only (gap)</span>
+        <span class="chip" data-filter="no-xrpl">No XRPL</span>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="tblCustody"></table></div>
+  </section>
+
+  <!-- Front-ends -->
+  <section class="sec" data-sec="frontends">
+    <div class="sec-head">
+      <div>
+        <h2>Front-ends</h2>
+        <p>Web-based UIs for interacting with XRPL accounts — signing UIs, dashboards, DEX/AMM/NFT interfaces, dev consoles, multisig coordinators.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input type="search" class="search" placeholder="Search front-ends…" data-target="frontends">
+      <div class="chip-filters" data-target="frontends">
+        <span class="chip on" data-filter="all">All</span>
+        <span class="chip" data-filter="oss">Open source</span>
+        <span class="chip" data-filter="signing">Signing UI</span>
+        <span class="chip" data-filter="dex">DEX / AMM / NFT</span>
+        <span class="chip" data-filter="multisig">Multisig</span>
+        <span class="chip" data-filter="dead">Dormant / discontinued</span>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="tblFrontends"></table></div>
+  </section>
+
+  <!-- Actions -->
+  <section class="sec" data-sec="actions">
+    <div class="sec-head">
+      <div>
+        <h2>Foundation action register</h2>
+        <p>Concrete actions, priority-ordered. Each maps to a finding in the report.</p>
+      </div>
+    </div>
+    <div class="actions" id="actionsList"></div>
+  </section>
+
+  <footer>
+    <span>Refresh quarterly · next: August 2026</span>
+    <span>This v1 written 20 May 2026 · re-pull live GitHub metadata before circulating externally</span>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   DATA — single source of truth for the dashboard
+   ============================================================ */
+
+const SDKS = [
+  // Official / XRPLF
+  { name: "xrpl.js", lang: "TS/JS", maintainer: "XRPLF", official: true, lastRel: "~v4.6.0 (Feb 2026)", cadence: "Active weekly", busFactor: 3, status: "active", action: "Verify supply-chain hardening", tags: ["official","active","sponsor"], notes: "Dominant client SDK; ~140k+ weekly npm downloads. Amendment coverage: AMM, Clawback, DID, MPT, Credentials, Permissioned Domains/DEX confirmed; Batch partial (XLS-56 paused). <strong>CVE-2025-32965 (CVSS 9.3)</strong> in Apr 2025 backdoored 5 versions via phished maintainer; post-incident hardening must be audited.", repo: "https://github.com/XRPLF/xrpl.js" },
+  { name: "xrpl-py", lang: "Python", maintainer: "XRPLF", official: true, lastRel: "v4.6.0b0 (18 Feb 2026)", cadence: "Active weekly", busFactor: 3, status: "active", action: "Monitor", tags: ["official","active"], notes: "v4.5.0 stable (12 Feb 2026); 4.6.0b0 beta adds ConfidentialMPT + Lending Protocol. Amendment coverage credibly current including MPT helpers. Docs complete.", repo: "https://github.com/XRPLF/xrpl-py" },
+  { name: "xrpl4j", lang: "Java", maintainer: "XRPLF / RippleX", official: true, lastRel: "v5.0.0 (2026)", cadence: "Monthly", busFactor: 2, status: "active", action: "Sponsor 2nd maintainer", tags: ["official","active","sponsor"], notes: "Smaller maintainer pool than JS/Py. DID, Credentials, Permissioned Domains/DEX, Deep Freeze, Batch coverage <strong>not confirmed</strong> in public release notes. Most likely SDK to lag through 2026.", repo: "https://github.com/XRPLF/xrpl4j" },
+  { name: "xrpl-go (Peersyst)", lang: "Go", maintainer: "Peersyst", official: true, lastRel: "Apr 2026", cadence: "Monthly", busFactor: 2, status: "active", action: "Coordinate — confirm canonical", tags: ["official","active"], notes: "De-facto active Go SDK. XRPLF/xrpl-go fork exists but relationship is undocumented. Publicly settle canonical ownership.", repo: "https://github.com/Peersyst/xrpl-go" },
+  { name: "ripple-binary-codec / -keypairs / -address-codec", lang: "TS", maintainer: "XRPLF", official: true, lastRel: "Tracks xrpl.js", cadence: "Active weekly", busFactor: 3, status: "active", action: "—", tags: ["official","active"], notes: "Bundled inside xrpl.js monorepo; inherits cadence and the Apr 2025 supply-chain risk surface.", repo: "https://github.com/XRPLF/xrpl.js" },
+
+  // Listed on xrpl.org but community
+  { name: "xrpl-accountlib", lang: "TS", maintainer: "Wietse Wind", official: false, lastRel: "Unknown 2025/26", cadence: "Monthly est.", busFactor: 1, status: "active", action: "Monitor", tags: ["active","bf1"], notes: "Account generation/derivation/signing helper. Bus factor 1, but library is small enough to fork if needed.", repo: "https://github.com/WietseWind/xrpl-accountlib" },
+  { name: "xrpl-client", lang: "TS", maintainer: "XRPL Labs", official: false, lastRel: "Unknown 2025/26", cadence: "Monthly est.", busFactor: 2, status: "active", action: "Monitor", tags: ["active"], notes: "Minimal WebSocket transport with reconnect/verify. Org-scoped to XRPL Labs.", repo: "https://github.com/XRPL-Labs/xrpl-client" },
+  { name: "XRPL_PHP (AlexanderBuzz)", lang: "PHP", maintainer: "Alexander Busse", official: false, lastRel: "v0.10.2 (Sep 2025)", cadence: "Quarterly", busFactor: 1, status: "active", action: "Sponsor", tags: ["active","bf1","sponsor"], notes: "Only viable PHP SDK with current releases. ~7.2k Packagist installs. Pre-1.0 means 2026 amendment parity is partial. Small grant unblocks the entire PHP slice.", repo: "https://github.com/AlexanderBuzz/xrpl-php" },
+  { name: "xrpl-php (EdouardCourty)", lang: "PHP", maintainer: "Edouard Courty", official: false, lastRel: "v1.3.0 (Mar 2025)", cadence: "Dead >12mo", busFactor: 1, status: "stale", action: "Archive / delist", tags: ["stale","bf1"], notes: "JSON-RPC wrapper only. Dead. Point users to AlexanderBuzz.", repo: "https://github.com/EdouardCourty/xrpl-php" },
+  { name: "XRBP", lang: "Ruby", maintainer: "DevNullProd", official: false, lastRel: "~2019", cadence: "Stale", busFactor: 1, status: "stale", action: "Archive / delist", tags: ["stale","bf1"], notes: "No 2026 commits. Amendment coverage: No. Listed on xrpl.org client-libraries — delist.", repo: "https://github.com/DevNullProd/XRBP" },
+
+  // Transia (COI)
+  { name: "XrplCSharp", lang: "C#", maintainer: "Transia (COI)", official: false, lastRel: "v1.0.0 NuGet (Apr 2023)", cadence: "Sporadic", busFactor: 1, status: "stale", action: "Coordinate (COI)", tags: ["stale","bf1"], notes: "Conflict-of-interest: maintained by report author. Two community .NET alternatives exist (Blomsma, 0xZunia). Foundation should decide between sponsoring Transia or backing an alternative — without author involvement.", repo: "https://github.com/Transia-RnD/XrplCSharp" },
+  { name: "xrpl.csharp.unity", lang: "C# Unity", maintainer: "Transia (COI)", official: false, lastRel: "Unknown", cadence: "Sporadic", busFactor: 1, status: "stale", action: "Coordinate (COI)", tags: ["stale","bf1"], notes: "Unity wrapper around XrplCSharp. Lowest-priority SDK in inventory.", repo: "https://github.com/Transia-RnD/xrpl.csharp.unity" },
+  { name: "XRPLSwift", lang: "Swift", maintainer: "Transia (COI)", official: false, lastRel: "Unknown", cadence: "Sporadic", busFactor: 1, status: "active", action: "Coordinate / sponsor (COI)", tags: ["active","bf1","sponsor"], notes: "Currently the only actively-published Swift XRPL library. Real concentration risk on a solo maintainer. If Transia can't bring it current, Foundation should commission a replacement.", repo: "https://github.com/Transia-RnD/XRPLSwift" },
+
+  // .NET community
+  { name: "XRPL.NET (Blomsma)", lang: ".NET", maintainer: "Dominique Blomsma", official: false, lastRel: "Beta active", cadence: "Monthly", busFactor: 1, status: "active", action: "Monitor", tags: ["active","bf1"], notes: "Maintainer is a .NET engineer at XRPL Labs (lowers operational risk). Strongest .NET candidate to back.", repo: "https://github.com/DominiqueBlomsma/XRPL.NET" },
+  { name: "XRPL.NET (0xZunia)", lang: ".NET", maintainer: "0xZunia", official: false, lastRel: "Pre-1.0", cadence: "Active", busFactor: 1, status: "active", action: "Monitor", tags: ["active","bf1"], notes: "Most ambitious on paper, least mature. Revisit in 6 months.", repo: "https://github.com/0xZunia/XRPL.NET" },
+
+  // Swift community
+  { name: "XRPKit (MitchLang009)", lang: "Swift", maintainer: "Mitch Lang", official: false, lastRel: "0.3.x", cadence: "Dead >12mo", busFactor: 1, status: "stale", action: "Archive", tags: ["stale","bf1"], notes: "Maintainer self-stated on XRP Chat: 'the ship sailed.' Delist from xrpl.org and point users at XRPLSwift.", repo: "https://github.com/MitchLang009/XRPKit" },
+  { name: "XpringKit", lang: "Swift", maintainer: "Xpring", official: false, lastRel: "Deprecated", cadence: "Dead", busFactor: 0, status: "dead", action: "Already archived", tags: ["dead"], notes: "Ripple Xpring deprecation. Ensure xrpl.org no longer links to it.", repo: "https://github.com/xpring-eng/XpringKit" },
+
+  // Rust
+  { name: "xrpl-rust (sephynox)", lang: "Rust", maintainer: "Tanveer Wahid (XRPL Grant)", official: false, lastRel: "v1.1.0 (Aug 2025)", cadence: "Stale 6–9mo", busFactor: 1, status: "active", action: "Sponsor or take over", tags: ["active","bf1","sponsor"], notes: "Only credible 100% Rust SDK. No 2026 releases. <strong>Highest-leverage Rust grant target</strong> — fund Tanveer to resume or pull under XRPLF.", repo: "https://github.com/sephynox/xrpl-rust" },
+  { name: "xrpl-sdk-rust (gmosx)", lang: "Rust", maintainer: "George Moschovitis", official: false, lastRel: "v0.16.7", cadence: "Quarterly", busFactor: 1, status: "active", action: "Monitor", tags: ["active","bf1"], notes: "Multi-crate; self-described pre-alpha. Secondary Rust project.", repo: "https://github.com/gmosx/xrpl-sdk-rust" },
+  { name: "xrpl_sdk_rust (Keyrock)", lang: "Rust", maintainer: "Keyrock", official: false, lastRel: "Pre-alpha", cadence: "Stale", busFactor: 2, status: "stale", action: "Monitor", tags: ["stale"], notes: "Fork of gmosx. Likely Keyrock-internal.", repo: "https://github.com/KeyrockEU/xrpl_sdk_rust" },
+
+  // Go community
+  { name: "xrpl-go (xrpscan)", lang: "Go", maintainer: "xrpscan", official: false, lastRel: "Dec 2025", cadence: "Stale", busFactor: 1, status: "stale", action: "Archive (migrated)", tags: ["stale","bf1"], notes: "xrpscan also forked Peersyst's xrpl-go — suggests migration. Archive.", repo: "https://github.com/xrpscan/xrpl-go" },
+  { name: "xrpl-go (xyield)", lang: "Go", maintainer: "xyield", official: false, lastRel: "Feb 2024", cadence: "Dead >12mo", busFactor: 1, status: "dead", action: "Archive", tags: ["dead","bf1"], notes: "README states 'not yet intended for use.' Dead.", repo: "https://github.com/xyield/xrpl-go" },
+  { name: "xrpl-go-api (Bithomp)", lang: "Go", maintainer: "Bithomp", official: false, lastRel: "Active", cadence: "Monthly", busFactor: 2, status: "active", action: "Monitor", tags: ["active"], notes: "Bithomp's own Go library, actively maintained.", repo: "https://github.com/Bithomp/xrpl-go-api" },
+  { name: "xrpl (gnanderson)", lang: "Go", maintainer: "Graham Anderson", official: false, lastRel: "Ops tooling", cadence: "Stale", busFactor: 1, status: "stale", action: "—", tags: ["stale","bf1"], notes: "Maintainer self-describes as 'unstable' — ops/admin tooling, not a general SDK.", repo: "https://github.com/gnanderson/xrpl" },
+
+  // Ruby
+  { name: "xpring-ruby", lang: "Ruby", maintainer: "ledhed2222", official: false, lastRel: "Archived", cadence: "Dead", busFactor: 0, status: "dead", action: "Already archived", tags: ["dead"], notes: "Already archived. Ensure xrpl.org delists.", repo: "https://github.com/ledhed2222/xpring-ruby" },
+
+  // Dart
+  { name: "xrpl_dart (mrtnetwork)", lang: "Dart", maintainer: "Mohsen (mrtnetwork)", official: false, lastRel: "Active 2025/26", cadence: "Monthly", busFactor: 1, status: "active", action: "Monitor", tags: ["active","bf1"], notes: "Only credible Dart/Flutter option. Supports tx handling, ED25519+SECP256K1, X-Address, JSON-RPC. AMM transactions present.", repo: "https://github.com/mrtnetwork/xrpl_dart" },
+  { name: "xrpl (pub.dev)", lang: "Dart", maintainer: "Community", official: false, lastRel: "0.0.8 WIP", cadence: "Stale", busFactor: 1, status: "stale", action: "Archive / monitor", tags: ["stale","bf1"], notes: "Dart bindings to xrpl.js at v0.0.8. Stale.", repo: "https://pub.dev/packages/xrpl" },
+
+  // Elixir
+  { name: "xrpl (lucca65)", lang: "Elixir", maintainer: "Lucca Pessoa", official: false, lastRel: "v1.0.0 (Mar 2024)", cadence: "Dead >12mo", busFactor: 1, status: "stale", action: "Delist or sponsor refresh", tags: ["stale","bf1"], notes: "XRPL Grant Wave 5 project. Dead >12 months. Elixir slice is thin enough that delist may be cleaner than refresh.", repo: "https://github.com/lucca65/xrpl" },
+
+  // Codec
+  { name: "xrpl-binary-codec (RichardAH)", lang: "TS", maintainer: "Richard Holland", official: false, lastRel: "<1yr", cadence: "Quarterly", busFactor: 1, status: "active", action: "Monitor", tags: ["active","bf1"], notes: "Non-monorepo fork; tracks `definitions.json` including Hooks. Coordinate given Richard's centrality to several core XRPL tooling components.", repo: "https://github.com/RichardAH/xrpl-binary-codec" },
+
+  // DEX SDKs
+  { name: "xrpl-dex-sdk (tequdev)", lang: "TS", maintainer: "tequ", official: false, lastRel: "v1.0.x", cadence: "Monthly", busFactor: 1, status: "active", action: "Monitor (niche)", tags: ["active","bf1"], notes: "CCXT-compatible TS SDK; fork-continuation of AktaryTech.", repo: "https://github.com/tequdev/xrpl-dex-sdk" },
+  { name: "xrpl-dex-sdk + python (AktaryTech)", lang: "TS / Py", maintainer: "AktaryTech", official: false, lastRel: "v1.0.1", cadence: "Dead", busFactor: 0, status: "dead", action: "Archive", tags: ["dead"], notes: "Both repos dead. Point users at tequdev's fork.", repo: "https://github.com/AktaryTech/xrpl-dex-sdk" },
+
+  // Gap
+  { name: "Kotlin / KMP", lang: "Kotlin", maintainer: "— DOES NOT EXIST —", official: false, lastRel: "n/a", cadence: "n/a", busFactor: 0, status: "gap", action: "Sponsor / grant", tags: ["sponsor"], notes: "<strong>Clean ecosystem gap.</strong> Android-Kotlin defaults and JetBrains' 2026 KMP push make this the most obvious 'missing language' in the ecosystem. Two grant shapes: Kotlin-idiomatic wrappers around xrpl4j (small) or KMP-native bindings (larger).", repo: "" }
+];
+
+const WALLETS = [
+  // XRPL-native
+  { name: "Xaman", platform: "iOS, Android", custody: "Non-custodial", networks: "XRPL Main/Test/Dev", lastRel: "v4.4.x — Q2 2026", maintainer: "XRPL Labs (Wietse Wind)", action: "Coordinate (strategic)", status: "active", tags: ["xrpl-native","active"], notes: "Reference XRPL wallet. AMM-aware swap, MPToken, permissioned domains, credentials. ~538M XRP moved in first 11 days of 2026; MAU >100k late 2024. <strong>Single biggest UX dependency in the ecosystem.</strong>" },
+  { name: "Crossmark", platform: "Chrome/Firefox extension", custody: "Non-custodial", networks: "XRPL Main/Test/Dev", lastRel: "Extension shipping; SDK stale", maintainer: "Crossmark (private team)", action: "Sponsor SDK", status: "active", tags: ["xrpl-native","active","sponsor"], notes: "Dominant browser-ext wallet for dapps. Product ships but `@crossmarkio/sdk` last meaningful release ~2 years ago. Highest-priority sponsor candidate among non-Xaman extensions." },
+  { name: "GemWallet", platform: "Chrome/Firefox/Brave extension", custody: "Non-custodial", networks: "XRPL Main/Test/Dev", lastRel: "Feb 2026", maintainer: "Community", action: "Sponsor", status: "active", tags: ["xrpl-native","active","sponsor"], notes: "Community/individual-led extension. @gemwallet/api on 3.8.0 from ~2025. SPOF on small team." },
+  { name: "Bifrost Wallet", platform: "iOS, Android", custody: "Non-custodial", networks: "XRPL + Flare + 12 others", lastRel: "Active 2026", maintainer: "Bifrost (Flare-aligned)", action: "Monitor / coordinate", status: "active", tags: ["xrpl-native","multi-asset","active"], notes: "Strongest XRPL/Flare bridge UX (FXRP, stXRP, FAssets). ~400k installs as of Mar 2026. Native XRPL trustline UX still missing — planned 2026." },
+  { name: "Joey Wallet", platform: "iOS (2026), Android (2025)", custody: "Non-custodial", networks: "XRPL Mainnet", lastRel: "Active", maintainer: "First Ledger / Joey team", action: "Monitor", status: "active", tags: ["xrpl-native","active"], notes: "New mobile self-custody, ~7.5k installs. Paired with First Ledger DEX. Credible newcomer aimed at retail." },
+  { name: "Girin Wallet", platform: "iOS, Android, Chrome ext", custody: "Non-custodial (social-login keyless)", networks: "XRPL, Root Network", lastRel: "Active 2026", maintainer: "Girin Labs (KR)", action: "Monitor / coordinate (APAC)", status: "active", tags: ["xrpl-native","active"], notes: "Social login (Google/Kakao) without giving up self-custody. JP/KR localization, Mercuryo onramp, Visa-rail Girin Card. XRPL JP/KR Ecosystem Fund recipient. Launch wallet for Reown XRPL RPC." },
+  { name: "Sologenic SOLO Wallet", platform: "iOS, Android", custody: "Non-custodial", networks: "XRPL Mainnet", lastRel: "Migrating to TX brand (Mar 2026)", maintainer: "Sologenic / TX (Coreum merger)", action: "Monitor / flag", status: "active", tags: ["xrpl-native","active"], notes: "Sologenic merged with Coreum in Feb 2026 to form TX. SOLO converts to TX at 1:2.345. Brand and token in transition — expect user confusion." },
+  { name: "First Ledger", platform: "Web", custody: "Non-custodial (via Joey)", networks: "XRPL Mainnet", lastRel: "Active 2026", maintainer: "First Ledger", action: "Monitor", status: "active", tags: ["xrpl-native","active"], notes: "XRPL DEX with web wallet UX; pairs with Joey." },
+  { name: "LOBSTR", platform: "iOS, Android, Web", custody: "Non-custodial", networks: "Stellar + XRPL (Apr 2026)", lastRel: "Apr 2026", maintainer: "LOBSTR Ltd", action: "Coordinate", status: "active", tags: ["xrpl-native","multi-asset","active"], notes: "Major Stellar wallet (1.3M+ users) added XRPL Apr 2026 via XRPL Commons collaboration. Big distribution win. Template for coordinated wallet onboarding." },
+  { name: "FuturePass", platform: "Web, mobile", custody: "Smart-contract / AA", networks: "Root Network (bridges XRPL/ETH)", lastRel: "Active 2026", maintainer: "Futureverse", action: "Monitor", status: "active", tags: ["xrpl-native","active"], notes: "Smart-contract / account-abstraction wallet on Root Network. Social login + Xaman/MetaMask/WalletConnect/Coinbase sign-in. Powers RakutenWallet.Pass since May 2025." },
+
+  // New from sweep
+  { name: "OsmWallet", platform: "Chrome extension", custody: "Non-custodial", networks: "XRPL Mainnet", lastRel: "Active 2025/26", maintainer: "OsmWallet team (indep.)", action: "Monitor", status: "active", tags: ["xrpl-native","active","new"], notes: "<strong>NEW (May sweep).</strong> XRPL-native browser ext alternative to Crossmark/GemWallet. DEX/trustline/swap UX. Small footprint, limited audit visibility." },
+  { name: "Anodos Wallet", platform: "Web (embedded)", custody: "Self-custody (MPC + Passkey via Palisade)", networks: "XRPL Mainnet", lastRel: "Dec 2025 launch", maintainer: "Anodos Labs (Greece)", action: "Monitor / coordinate", status: "active", tags: ["xrpl-native","active","new"], notes: "<strong>NEW (May sweep).</strong> First XRPL Passkey-secured wallet. Sub-minute onboarding. Ties directly to Ripple's Palisade acquisition. No seed phrase fallback by design." },
+  { name: "Zypto Wallet", platform: "iOS, Android", custody: "Non-custodial", networks: "20+ chains incl. XRPL Mainnet", lastRel: "Active 2026", maintainer: "Zypto (Ireland)", action: "Monitor", status: "active", tags: ["xrpl-native","multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> Markets as XRPL-first multi-chain. Native trustline, swap, fiat on-ramp." },
+
+  // Hardware
+  { name: "Ledger (XRP app)", platform: "Hardware + Ledger Live", custody: "Non-custodial / hardware", networks: "XRPL Mainnet", lastRel: "Live 4.0 Q1 2026; hw-app-xrp 6.33.x", maintainer: "Ledger SAS", action: "Coordinate (XRPL UX in Live)", status: "active", tags: ["hardware","active"], notes: "Most important hardware option for XRPL holders. No AMM-aware UX in Live — coordinate on surfacing new amendments (MPT, Credentials, DIDs)." },
+  { name: "Trezor", platform: "Hardware + Suite", custody: "Non-custodial / hardware", networks: "XRPL Mainnet", lastRel: "Active 2026", maintainer: "SatoshiLabs", action: "Monitor", status: "active", tags: ["hardware","active"], notes: "XRP native in Trezor Suite across Safe 3/5 and Model T (Nano S/S Plus do <strong>not</strong> support XRP). No AMM/MPT/Credentials UX." },
+  { name: "D'CENT", platform: "Hardware + app", custody: "Non-custodial / hardware", networks: "XRPL Mainnet", lastRel: "Active 2026", maintainer: "IoTrust (KR)", action: "Monitor", status: "active", tags: ["hardware","active"], notes: "Hardware + companion app with native XRPL trustline UX." },
+  { name: "Keystone", platform: "Hardware (air-gapped QR)", custody: "Non-custodial / hardware", networks: "XRPL via third-party signers", lastRel: "n/a", maintainer: "Keystone HK", action: "Flag — request native", status: "gap", tags: ["hardware","risk"], notes: "Air-gapped QR signer. No native XRPL flow — relies on third-party XRPL-native wallets accepting Keystone QR. Gap." },
+  { name: "ELLIPAL", platform: "Hardware + app", custody: "Non-custodial / hardware", networks: "XRPL via ELLIPAL app", lastRel: "Active 2026", maintainer: "ELLIPAL HK", action: "Monitor", status: "active", tags: ["hardware","active"], notes: "Air-gapped hardware. Passive XRP storage — no AMM/MPT/DID UX." },
+  { name: "SafePal", platform: "Hardware + mobile", custody: "Non-custodial / hardware", networks: "XRPL", lastRel: "Active 2026", maintainer: "SafePal (Binance-backed)", action: "Monitor", status: "active", tags: ["hardware","active"], notes: "Passive XRP storage." },
+  { name: "Tangem", platform: "Card + app", custody: "Non-custodial / hardware", networks: "XRPL (native, destination tag)", lastRel: "Active 2026", maintainer: "Tangem AG", action: "Coordinate", status: "active", tags: ["hardware","active"], notes: "Card-form hardware with NFC. Frequently co-signs with Xaman." },
+  { name: "SecuX", platform: "Hardware + app", custody: "Non-custodial / hardware", networks: "XRPL (thin docs)", lastRel: "Unclear", maintainer: "SecuX TW", action: "Monitor", status: "active", tags: ["hardware","risk"], notes: "Claims XRP but documentation thin. Marginal coverage." },
+  { name: "OneKey", platform: "Hardware + mobile + desktop", custody: "Non-custodial / hardware", networks: "XRPL not surfaced in 2026 docs", lastRel: "n/a", maintainer: "OneKey", action: "Flag — request XRPL", status: "gap", tags: ["hardware","risk"], notes: "Does not surface XRPL support in 2026 docs. Gap." },
+  { name: "Cypherock X1", platform: "Hardware (Shamir shards)", custody: "Non-custodial / hardware", networks: "XRPL Mainnet", lastRel: "Active 2026", maintainer: "Cypherock", action: "Monitor", status: "active", tags: ["hardware","active"], notes: "Shamir-shard hardware. Native XRPL listed." },
+  { name: "KeepKey", platform: "Hardware + Vault desktop + ext", custody: "Hardware (self-custody)", networks: "XRPL Mainnet", lastRel: "Active 2026 (Decentral Inc.)", maintainer: "Decentral Inc. (post-ShapeShift)", action: "Monitor", status: "active", tags: ["hardware","active","new"], notes: "<strong>NEW (May sweep).</strong> Hardware accessed via KeepKey Vault. Older hardware; XRPL features limited to send/receive." },
+  { name: "BC Vault", platform: "Hardware", custody: "Hardware (self-custody)", networks: "XRPL Mainnet (destination tag)", lastRel: "Active", maintainer: "REAL Security d.o.o. (Slovenia)", action: "Monitor", status: "active", tags: ["hardware","active","new"], notes: "<strong>NEW (May sweep).</strong> 1M+ assets incl. XRPL with destination-tag support. Niche brand." },
+  { name: "CoolWallet Pro / S", platform: "Hardware (card, Bluetooth) + app", custody: "Hardware (self-custody)", networks: "XRPL Mainnet", lastRel: "Active 2026", maintainer: "CoolBitX (Taiwan)", action: "Monitor", status: "active", tags: ["hardware","active","new"], notes: "<strong>NEW (May sweep).</strong> APAC-popular hardware wallet, CC EAL 6+ secure element." },
+  { name: "NGRAVE Zero", platform: "Hardware (air-gapped) + LIQUID app", custody: "Hardware (self-custody, air-gapped)", networks: "XRPL Mainnet", lastRel: "Active 2026", maintainer: "NGRAVE (Belgium)", action: "Monitor", status: "active", tags: ["hardware","active","new"], notes: "<strong>NEW (May sweep).</strong> EAL 7 certified air-gapped device. XRPL feature depth likely limited." },
+
+  // Multi-asset software
+  { name: "Trust Wallet", platform: "iOS, Android, Chrome ext", custody: "Non-custodial", networks: "XRPL (basic)", lastRel: "Active 2026", maintainer: "Binance-aligned", action: "Monitor", status: "active", tags: ["multi-asset","active"], notes: "Multi-chain with shallow XRPL." },
+  { name: "Exodus", platform: "Desktop, mobile, ext", custody: "Non-custodial", networks: "XRPL + RLUSD (Apr 2026)", lastRel: "Apr 2026", maintainer: "Exodus Movement (EXOD)", action: "Coordinate", status: "active", tags: ["multi-asset","active"], notes: "Expanded XRP + RLUSD support Apr 2026 in collaboration with Ripple. Feature coverage still below Xaman." },
+  { name: "Atomic Wallet", platform: "Desktop, mobile", custody: "Non-custodial", networks: "XRPL", lastRel: "Active", maintainer: "Atomic Wallet OU", action: "Flag / deprecate from collateral", status: "risk", tags: ["multi-asset","risk"], notes: "<strong>High risk.</strong> Jun 2023 Lazarus-attributed $100M+ breach across chains including XRP. Class action filed. No satisfactory postmortem. Do NOT recommend." },
+  { name: "Edge", platform: "iOS, Android", custody: "Non-custodial", networks: "XRPL via edge-currency-ripple", lastRel: "Active 2026", maintainer: "Edge (Airbitz)", action: "Monitor", status: "active", tags: ["multi-asset","active"], notes: "Mobile-only non-custodial. Shallow XRPL." },
+  { name: "Zengo", platform: "iOS, Android", custody: "MPC (no seed, 2-of-2)", networks: "XRPL", lastRel: "Active 2026", maintainer: "Zengo (IL)", action: "Coordinate", status: "active", tags: ["multi-asset","active"], notes: "Only mainstream MPC option for XRPL. No seed phrase, 24/7 human support. MPC is a security category XRPL otherwise lacks." },
+  { name: "GateHub", platform: "Web", custody: "Custodial (hosted) + non-custodial", networks: "XRPL Mainnet", lastRel: "Active 2026", maintainer: "GateHub d.o.o.", action: "Flag custody clearly", status: "risk", tags: ["custodial","risk"], notes: "<strong>2019 breach — ~100 XRPL wallets drained via stolen access tokens.</strong> Canonical XRPL custodial incident. Must remain explicitly flagged in Foundation collateral." },
+  { name: "Uphold + Vault", platform: "Web, mobile", custody: "Custodial exchange + 2-of-3 multisig (hybrid)", networks: "XRPL (BTC/HBAR/XRP/SOLO/CORE/RLUSD)", lastRel: "Active 2026", maintainer: "Uphold HQ", action: "Flag custody clearly", status: "active", tags: ["custodial","active"], notes: "Exchange is custodial; Vault is 2-of-3 multisig with Uphold holding one key, paid subscription. Useful halfway product; never describe as fully self-custodial." },
+  { name: "Brave Wallet", platform: "Browser", custody: "Non-custodial", networks: "No XRPL support", lastRel: "n/a", maintainer: "Brave Software", action: "Flag — request XRPL", status: "gap", tags: ["multi-asset","risk"], notes: "Still no XRP/XRPL support despite 70M+ Brave users. Significant distribution gap." },
+  { name: "Bitget Wallet", platform: "Mobile, browser extension", custody: "Non-custodial", networks: "Multi-chain incl. XRPL (Apr 2026)", lastRel: "Apr 2026 integration", maintainer: "Bitget (~90M users)", action: "Coordinate", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> Brings XRPL + RLUSD payments to ~90M users. Integrates with Bitget crypto cards and merchant QR." },
+  { name: "OKX Wallet (Web3)", platform: "Mobile, ext, web", custody: "Non-custodial", networks: "Multi-chain incl. XRPL", lastRel: "Active 2026", maintainer: "OKX", action: "Monitor", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> One of the largest multi-chain wallets globally with native XRPL." },
+  { name: "Bybit Web3 Wallet", platform: "Mobile, ext", custody: "Non-custodial", networks: "Multi-chain — XRPL native UNCONFIRMED", lastRel: "Active", maintainer: "Bybit", action: "Confirm before listing", status: "unknown", tags: ["multi-asset","new","risk"], notes: "<strong>NEW (May sweep).</strong> Bybit references XRP and destination tags but doesn't clearly state XRPL is a Web3 wallet chain. Verify direct." },
+  { name: "Coin98 Super Wallet", platform: "Mobile, ext", custody: "Non-custodial", networks: "140+ chains incl. XRPL", lastRel: "Active 2026", maintainer: "Coin98 Finance (Vietnam)", action: "Monitor", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> Major Vietnam/SE-Asia wallet with native XRPL. Broad chain count means shallow XRPL features." },
+  { name: "Guarda Wallet", platform: "Web, mobile, desktop, ext", custody: "Non-custodial", networks: "50+ chains incl. XRPL", lastRel: "Active 2026", maintainer: "Guarda (Estonia)", action: "Monitor", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> Multi-platform XRPL support including web. Closed-source components." },
+  { name: "Coinomi", platform: "Mobile, desktop", custody: "Non-custodial", networks: "125+ chains incl. XRPL", lastRel: "Active 2026", maintainer: "Coinomi Ltd (UK)", action: "Monitor", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> One of the oldest multi-chain wallets with XRPL. 2019 clipboard leak long since patched." },
+  { name: "Klever Wallet", platform: "Mobile, desktop", custody: "Non-custodial (hot) + Klever Safe (hw)", networks: "40+ chains incl. XRPL", lastRel: "Active 2026", maintainer: "Klever Finance", action: "Monitor", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> 4M users across 190 countries. Exchange-affiliated." },
+  { name: "Bitcoin.com Wallet", platform: "Mobile, ext", custody: "Non-custodial", networks: "Multi-chain incl. XRPL", lastRel: "Feb 2026 update", maintainer: "Bitcoin.com (Saint Bitts LLC)", action: "Monitor", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> Heavy BCH historical bias; XRPL feature depth shallow." },
+  { name: "BitPay Wallet", platform: "Mobile + ext", custody: "Non-custodial", networks: "Multi-asset incl. XRP", lastRel: "Active 2026", maintainer: "BitPay Inc.", action: "Monitor", status: "active", tags: ["multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> Payments-oriented wallet supporting XRP." },
+
+  // Custodial-attached / payments
+  { name: "Rakuten Wallet / Pay", platform: "iOS, Android (Japan-only)", custody: "Custodial (FSA-licensed)", networks: "XRP integrated into Rakuten Pay (Apr 15, 2026)", lastRel: "Apr 2026", maintainer: "Rakuten Group", action: "Monitor / coordinate (JP)", status: "active", tags: ["custodial","active","new"], notes: "<strong>NEW (May sweep) — major Japanese touchpoint.</strong> 44M users, 5M merchants. XRP converts to Rakuten Cash → yen at point of sale (not native XRPL spend)." },
+  { name: "Revolut", platform: "iOS, Android (31 countries)", custody: "Custodial (pooled)", networks: "XRP", lastRel: "Active 2026", maintainer: "Revolut", action: "Flag custody clearly", status: "active", tags: ["custodial","active","new"], notes: "<strong>NEW (May sweep).</strong> Buyable/holdable; withdrawals to external XRPL wallets allowed with limits. No user keys." },
+  { name: "eToro Money Crypto Wallet", platform: "Mobile", custody: "Hybrid (custodial trading + non-custodial wallet)", networks: "XRP", lastRel: "Active 2026", maintainer: "eToro", action: "Monitor", status: "active", tags: ["custodial","multi-asset","active","new"], notes: "<strong>NEW (May sweep).</strong> Self-custody transfer path from custodial trading account." },
+  { name: "Bitbank Wallet (Japan)", platform: "Web, mobile (JP only)", custody: "Custodial (FSA-licensed)", networks: "XRP", lastRel: "Active 2026", maintainer: "Bitbank", action: "Flag custody clearly", status: "active", tags: ["custodial","active","new"], notes: "<strong>NEW (May sweep).</strong> Japanese residents only. Major APAC custodial XRP touchpoint." }
+];
+
+const LIBS = [
+  { name: "xumm-sdk", lang: "TS", lastRel: "Maintained ~2026", cadence: "Regular", maintainer: "XRPL Labs", connects: "Xaman", action: "Monitor", status: "active", tags: ["active"], notes: "Healthiest and most-used dapp connector in ecosystem." },
+  { name: "xumm (Universal SDK)", lang: "TS", lastRel: "Beta, active", cadence: "Regular", maintainer: "XRPL Labs", connects: "Xaman", action: "Monitor", status: "active", tags: ["active"], notes: "Unified browser/backend/xApp wrapper." },
+  { name: "xumm-xapp-sdk", lang: "JS", lastRel: "1.7.2 (~2yr)", cadence: "Stale", maintainer: "XRPL Labs", connects: "Xaman xApps", action: "Superseded by universal SDK", status: "stale", tags: ["stale"], notes: "Effectively superseded by the universal SDK." },
+  { name: "xumm-sdk-py", lang: "Python", lastRel: "Maintained, slow", cadence: "Slow", maintainer: "XRPL Labs", connects: "Xaman", action: "Monitor", status: "active", tags: ["active"], notes: "Slow cadence but alive." },
+  { name: "xrpl/xumm-sdk-php", lang: "PHP", lastRel: "On Packagist", cadence: "Slow", maintainer: "XRPL Labs", connects: "Xaman", action: "Monitor", status: "active", tags: ["active"], notes: "Auto-updated; slow cadence." },
+  { name: "XUMM.NET.SDK", lang: "C#/.NET", lastRel: "Maintained", cadence: "Slow", maintainer: "XRPL Labs", connects: "Xaman", action: "Monitor", status: "active", tags: ["active"], notes: "Only first-party non-JS/Py option for enterprise integrations." },
+  { name: "XUMM-OAuth2-OpenID-Provider", lang: "TS (Node)", lastRel: "v0.0.1", cadence: "Stale", maintainer: "XRPL Labs", connects: "Xaman as IdP", action: "Sponsor / coordinate (Sign-in-with-XRPL)", status: "stale", tags: ["stale","sponsor"], notes: "XRPL's nearest equivalent to Sign-in-with-Apple/Google. No equivalent for Crossmark or GemWallet. Sponsor a hardened reference deployment." },
+  { name: "XummPkce", lang: "JS", lastRel: "Maintained", cadence: "Slow", maintainer: "XRPL Labs", connects: "Xaman (OAuth2 PKCE)", action: "Monitor", status: "active", tags: ["active"], notes: "Client OAuth2 PKCE flow." },
+  { name: "@crossmarkio/sdk", lang: "TS", lastRel: "0.4.0 (~2yr)", cadence: "Stale", maintainer: "Crossmark (private)", connects: "Crossmark extension", action: "Sponsor — push release or fork", status: "stale", tags: ["stale","sponsor"], notes: "<strong>Highest-priority sponsor candidate among non-Xaman extensions.</strong> Wallet ships product; dev surface is stale." },
+  { name: "crosskit", lang: "TS", lastRel: "Sparse", cadence: "Stale", maintainer: "Crossmark", connects: "Crossmark debug", action: "—", status: "stale", tags: ["stale"], notes: "Debugging/testing utility." },
+  { name: "@gemwallet/api", lang: "TS", lastRel: "3.8.0 (~2025)", cadence: "Slow", maintainer: "GemWallet community", connects: "GemWallet extension", action: "Sponsor", status: "active", tags: ["active","sponsor"], notes: "Functional but on a small team. Sponsor candidate for second healthy extension-wallet integration path." },
+  { name: "@ledgerhq/hw-app-xrp", lang: "TS", lastRel: "6.33.x (May 2026)", cadence: "Healthy", maintainer: "Ledger SAS", connects: "Ledger XRP app", action: "Monitor", status: "active", tags: ["active"], notes: "Actively shipping. Coordinate to surface new XRPL amendments in Live." },
+  { name: "LedgerHQ/app-xrp (firmware)", lang: "C", lastRel: "Maintained", cadence: "Healthy", maintainer: "Ledger SAS", connects: "Ledger devices", action: "Monitor", status: "active", tags: ["active"], notes: "Healthy, well-maintained firmware app." },
+  { name: "Reown XRPL RPC namespace", lang: "Spec", lastRel: "Live, 'under review'", cadence: "Spec changes still happening", maintainer: "Reown + XRPL community", connects: "Any WC-compliant wallet", action: "Coordinate — drive to stable v1", status: "active", tags: ["active","sponsor"], notes: "Spec ratification + maintained reference client is most leveraged investment in this category." },
+  { name: "tequdev/xrpl-walletconnect", lang: "TS", lastRel: "Active 2025/26", cadence: "Solo dev", maintainer: "tequ", connects: "WC-compatible XRPL wallets", action: "Sponsor — SPOF on one dev", status: "active", tags: ["active","sponsor"], notes: "Most active WC implementation work for XRPL — single community developer." },
+  { name: "@xrpl-wallet-adapter/walletconnect", lang: "TS", lastRel: "Niche", cadence: "Low", maintainer: "Community", connects: "WC for XRPL", action: "Monitor", status: "active", tags: ["active"], notes: "Niche adapter." },
+  { name: "LeJamon/wc-client-vue", lang: "TS/Vue", lastRel: "Niche", cadence: "Hobby", maintainer: "Individual", connects: "WC client (Vue)", action: "—", status: "active", tags: ["active"], notes: "Hobby." },
+  { name: "SFsourDoh/xrpl-walletconnect-wallet", lang: "TS", lastRel: "Test/reference", cadence: "Low", maintainer: "Individual", connects: "Test wallet for WC v2", action: "—", status: "active", tags: ["active"], notes: "Reference only." },
+  { name: "XRPL-Connect (XRPL Commons)", lang: "TS", lastRel: "Active 2026", cadence: "Regular", maintainer: "XRPL Commons", connects: "Xaman, Crossmark, GemWallet, WalletConnect, Ledger", action: "Sponsor + endorse as official Connect Kit", status: "active", tags: ["active","sponsor","aggregator"], notes: "<strong>Most credible 'official Connect Kit' candidate.</strong> Web Component + adapters for the major wallets. Should be the recommended starting point for new dapps." },
+  { name: "tequdev/xrpl-wallet-standard (XLS-72d)", lang: "TS", lastRel: "Active", cadence: "Solo dev", maintainer: "tequ", connects: "Xaman + Crossmark adapter reference", action: "Coordinate — adopt XLS-72d as standard", status: "active", tags: ["active","aggregator","sponsor"], notes: "Drafted and prototyped by tequ. Adoption outside the proposer is essentially zero — no first-class XLS-72d adapters in Xaman/Crossmark/GemWallet yet." },
+  { name: "tequdev/xrpl-wallet", lang: "TS", lastRel: "Active", cadence: "Solo dev", maintainer: "tequ", connects: "Multi-wallet dApp helper", action: "Monitor", status: "active", tags: ["active","aggregator"], notes: "Multi-wallet dApp helper." },
+  { name: "npm xrpl-wallet (generic)", lang: "TS", lastRel: "Mixed", cadence: "Mixed", maintainer: "Various", connects: "Mostly hobby", action: "Reserve namespace", status: "active", tags: ["active"], notes: "Namespace squatting risk worth reserving." },
+  { name: "garantor/xrpl-wallet-kit", lang: "TS", lastRel: "Hobby", cadence: "Low", maintainer: "Individual", connects: "Multi-wallet abstraction", action: "—", status: "active", tags: ["active","aggregator"], notes: "Hobby." },
+  { name: "Aaditya-T/xrpl-wallet-connect", lang: "TS (Next.js)", lastRel: "Template", cadence: "Low", maintainer: "Individual", connects: "Template, not a library", action: "—", status: "active", tags: ["active","aggregator"], notes: "JWT-auth template supporting Xaman, Gem, Crossmark." },
+  { name: "@futureverse/auth", lang: "TS", lastRel: "5.0.3 (~May 2026)", cadence: "Active", maintainer: "Futureverse", connects: "FuturePass", action: "Monitor", status: "active", tags: ["active"], notes: "Core OpenID Connect / OAuth 2.0 lib for FuturePass." },
+  { name: "@futureverse/auth-react", lang: "TS", lastRel: "5.0.0 (~May 2026)", cadence: "Active", maintainer: "Futureverse", connects: "FuturePass via React", action: "Monitor", status: "active", tags: ["active"], notes: "React bindings." },
+  { name: "@futureverse/auth-ui", lang: "TS/React", lastRel: "Active", cadence: "Active", maintainer: "Futureverse", connects: "FuturePass UI flows", action: "Monitor", status: "active", tags: ["active"], notes: "UI components including Xaman integration since v1.1.0." },
+  { name: "@futureverse/react", lang: "TS", lastRel: "Active", cadence: "Active", maintainer: "Futureverse", connects: "TRN React hooks", action: "Monitor", status: "active", tags: ["active"], notes: "React SDK aggregating Futureverse functions." },
+  { name: "@futureverse/signer", lang: "TS", lastRel: "Active", cadence: "Active", maintainer: "Futureverse", connects: "FuturePass signing", action: "Monitor", status: "active", tags: ["active"], notes: "Signer abstraction." },
+  { name: "@futureverse/asset-register", lang: "TS", lastRel: "Active", cadence: "Active", maintainer: "Futureverse", connects: "TRN asset registry", action: "Monitor", status: "active", tags: ["active"], notes: "Asset/NFT registry SDK." },
+  { name: "Sologenic SOLO Wallet SDK", lang: "TS", lastRel: "Multiple repos ARCHIVED", cadence: "Mostly dead", maintainer: "Sologenic / TX", connects: "SOLO wallet", action: "Flag as deprecated", status: "stale", tags: ["stale"], notes: "Most public Sologenic SDK repos marked `-ARCHIVED`. Combined with Sologenic → TX merger, treat surface as deprecated." }
+];
+
+const CUSTODY = [
+  { name: "Fireblocks", xrpl: "Yes", model: "MPC (TSS), policy engine", raw: "Yes — open-source fireblocks-xrp-sdk", types: "OfferCreate/Cancel, TrustSet, Cross-Currency Payments, Credentials, Clawback, Freeze, AccountSet, Burn", status: "Reference provider", tags: ["raw-yes"], notes: "Reference institutional XRPL custodian. AMM/MPT/DID not first-class in SDK but reachable via RAW primitive." },
+  { name: "Dfns", xrpl: "Tier-1 (Jan 2026)", model: "MPC", raw: "Yes — Broadcast API + TrustSet", types: "XLS-33 issuance tokens, IOU transfers, MPC signing of TrustSet", status: "Fastest 2026 mover", tags: ["raw-yes"], notes: "Elevated XRPL to Tier-1 in Jan 2026. Public docs." },
+  { name: "Utila", xrpl: "Yes (added 2025/2026)", model: "MPC", raw: "Partial — XRPL-aware policy", types: "Beyond Payment, scope unclear", status: "Newer entrant", tags: ["raw-yes"], notes: "Coordinate to confirm scope." },
+  { name: "Ripple Custody (Metaco)", xrpl: "Yes", model: "HSM + policy", raw: "Yes (Ripple-controlled)", types: "Wide — used for $280M diamond tokenization", status: "Ripple-controlled", tags: ["raw-yes"], notes: "Citi, BNP, BBVA, SocGen on customer roster. Not vendor-neutral." },
+  { name: "Hex Trust", xrpl: "Yes", model: "Hot/cold + HSM", raw: "Yes (wXRP / FXRP issuance flows)", types: "wXRP issuance, FXRP institutional flows", status: "Underrated XRPLF ally", tags: ["raw-yes"], notes: "Drives wXRP and institutional FXRP. Worth coordination." },
+  { name: "Liminal Custody", xrpl: "Yes (Mar 2026 XRPL-native push)", model: "HSM Vaults", raw: "Likely yes (institutional vaults)", types: "Scope confirming", status: "XRPL-positioning", tags: ["raw-yes"], notes: "Positioning as XRPL-native." },
+  { name: "BitGo / BitGo Trust", xrpl: "Yes", model: "Cold + warm + MPC option", raw: "No — Payment only via public API", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "Clients can't TrustSet / AMM / MPT via API." },
+  { name: "Anchorage Digital", xrpl: "Yes", model: "Federally-chartered cold", raw: "No — Payment only", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "Federally chartered but Payment-only API surface." },
+  { name: "Coinbase Prime / Custody", xrpl: "Yes", model: "Cold + warm", raw: "No — Payment only", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "Prime ended custody for 49 altcoins recently — XRP not affected." },
+  { name: "Gemini Custody", xrpl: "Yes (incl. RLUSD)", model: "Cold + hot", raw: "No — Payment only", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "RLUSD on XRPL supported but Payment-only API." },
+  { name: "Kraken / Kraken Trust", xrpl: "Yes (OCC trust filing May 2026)", model: "Exchange cold + Trust", raw: "No — Payment only", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "OCC trust charter filing May 2026." },
+  { name: "Komainu", xrpl: "Yes", model: "Hot/cold", raw: "No — Payment only", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "Major gap." },
+  { name: "Sygnum", xrpl: "Yes", model: "Regulated CH custody", raw: "Payment only", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "Regulated Swiss custodian." },
+  { name: "Zodia Custody (SCB-acquired)", xrpl: "Limited XRP", model: "Hot/cold", raw: "Unknown", types: "Unknown", status: "Watch post-acquisition", tags: ["raw-no"], notes: "Standard Chartered acquired May 2026 — watch for policy changes." },
+  { name: "Taurus", xrpl: "NO XRPL", model: "HSM, custody-as-a-service", raw: "n/a", types: "n/a", status: "European-bank gap", tags: ["no-xrpl"], notes: "<strong>Powers Deutsche Bank, Santander, State Street, CACEIS, Pictet, KBC, Swissquote, ClearBank.</strong> Adding XRPL unlocks the European banking layer." },
+  { name: "Copper.co", xrpl: "Limited XRP", model: "Cold (ClearLoop)", raw: "Unknown", types: "Unknown", status: "Trading-focused", tags: ["raw-no"], notes: "Trading-focused; XRPL surface thin." },
+  { name: "Fordefi", xrpl: "No XRPL", model: "MPC wallet-as-a-service", raw: "n/a", types: "n/a", status: "Outreach target", tags: ["no-xrpl"], notes: "Coordinated-outreach target." },
+  { name: "Cobo", xrpl: "Limited XRP", model: "MPC + custody", raw: "Unknown", types: "Unknown", status: "Confirm", tags: ["raw-no"], notes: "Coordinate to confirm." },
+  { name: "Ceffu (ex-Binance Custody)", xrpl: "Yes (Binance-aligned)", model: "Hot/cold", raw: "Payment only", types: "Payment only", status: "Major gap", tags: ["raw-no"], notes: "Likely gap." },
+  { name: "Cactus Custody (Matrixport)", xrpl: "Limited", model: "MPC", raw: "Unknown", types: "Unknown", status: "Newer self-hosted MPC", tags: ["raw-no"], notes: "Self-hosted MPC launched 2026." },
+  { name: "Bakkt Custody", xrpl: "No XRPL", model: "Cold", raw: "n/a", types: "n/a", status: "Gap", tags: ["no-xrpl"], notes: "No XRPL." },
+  { name: "Crypto Finance AG", xrpl: "Yes", model: "Regulated CH custody", raw: "Payment only (assumed)", types: "Unknown", status: "Confirm", tags: ["raw-no"], notes: "Confirm." },
+  { name: "Kingdom Trust", xrpl: "Yes (IRA-style)", model: "Cold", raw: "Payment only", types: "Payment only", status: "Niche", tags: ["raw-no"], notes: "IRA-style niche." },
+  { name: "Standard Custody (PolySign)", xrpl: "Yes", model: "HSM", raw: "Payment only (assumed)", types: "Unknown", status: "Confirm", tags: ["raw-no"], notes: "Confirm." }
+];
+
+const FRONTENDS = [
+  { name: "XRP Toolkit", category: "Web signing UI (arbitrary tx)", oss: "Partial (GitLab, stale 2019)", maintainer: "Towo Labs (Ripple-invested)", networks: "Mainnet", status: "Active site / frozen OSS", tags: ["signing","oss"], url: "https://www.xrptoolkit.com", notes: "Canonical neutral web front-end. OSS frozen since ~2019. If Towo winds down, hard fork is a multi-month project." },
+  { name: "Bithomp Tools", category: "Web/offline signing UI", oss: "Yes (GitHub)", maintainer: "Bithomp / Octillion S.A.", networks: "Main/Test/Dev", status: "Discontinued", tags: ["signing","oss","dead"], url: "https://github.com/Bithomp/bithomp-tools", notes: "<strong>Officially discontinued in README.</strong> Many docs still recommend it for offline multisig — live security exposure." },
+  { name: "XRPLWin", category: "Dashboard + transactor + multisig", oss: "Partial (parsers OSS)", maintainer: "XRPLWin (independent)", networks: "Main/Test", status: "Active", tags: ["signing","multisig","oss"], url: "https://xrplwin.com", notes: "Deepest community-built developer surface today. Raw-JSON transactor, multisig links, validator/amendment views." },
+  { name: "Ripple XRPL Explorer", category: "Explorer + dev tools", oss: "Yes (ripple/explorer)", maintainer: "Ripple (RippleX)", networks: "Main/Test/Dev/AMM-Dev", status: "Active (deploy 2026-05-05)", tags: ["oss"], url: "https://livenet.xrpl.org", notes: "228 stars, ~839 commits. Strong base but read-only — no signing." },
+  { name: "XRPLF Technical Explorer", category: "JSON dev explorer", oss: "Yes", maintainer: "XRPL Foundation", networks: "Main/Test", status: "Active BETA", tags: ["oss"], url: "https://explorer.xrplf.org", notes: "Foundation-owned. Vue, MIT. Lightly maintained, BETA-labelled." },
+  { name: "XRPSCAN", category: "Explorer + dev console", oss: "Partial", maintainer: "XRPScan team", networks: "Mainnet", status: "Active", tags: ["oss"], url: "https://xrpscan.com", notes: "Most polished day-to-day explorer for accounts, AMMs, MPTs, credentials, oracles." },
+  { name: "Bithomp Explorer", category: "Explorer + token/NFT views", oss: "Partial", maintainer: "Bithomp / Octillion S.A.", networks: "Main/Test/Dev", status: "Active", tags: ["oss"], url: "https://bithomp.com", notes: "Distinct from Bithomp Tools — explorer remains actively maintained." },
+  { name: "WietseWind XRPL-MultiSignTool", category: "Multisig coordinator (browser)", oss: "Yes", maintainer: "Wietse Wind", networks: "Mainnet", status: "Dormant since Sep 2019", tags: ["multisig","oss","dead"], url: "https://github.com/WietseWind/XRPL-MultiSignTool", notes: "Reference multisig coordinator. Doesn't understand AMM/MPT/Credentials/Permissioned-Domains tx types." },
+  { name: "XRPMan Multi-Wallet Suite", category: "Multisig coordinator", oss: "Unknown", maintainer: "Independent", networks: "Mainnet", status: "Active (newer, unaudited)", tags: ["multisig"], url: "https://www.xrpmanmultisig.xyz", notes: "Newer entrant; maintainer/funding model not transparent." },
+  { name: "Multisign xApp (xumm.multisign)", category: "Multisig signature collection", oss: "No (xApp)", maintainer: "XRPL Labs", networks: "Mainnet", status: "Active", tags: ["multisig"], url: "", notes: "Closed-source xApp inside Xaman." },
+  { name: "Lathan Multisig xApp", category: "Multisig", oss: "No", maintainer: "Lathan (community)", networks: "Mainnet", status: "Active", tags: ["multisig"], url: "", notes: "Community multisig xApp." },
+  { name: "Sologenic DEX", category: "DEX UI + token mgmt + trustlines", oss: "No", maintainer: "Sologenic / TX (Coreum merger)", networks: "Mainnet", status: "Active but migrating", tags: ["dex"], url: "https://sologenic.org/dex", notes: "In transition post-merger. Some functionality being repointed at Coreum / TX." },
+  { name: "Magnetic (xmagnetic.org)", category: "AMM swap + DEX + NFT + bridge", oss: "No", maintainer: "Magnetic team", networks: "Mainnet", status: "Active", tags: ["dex"], url: "https://xmagnetic.org", notes: "Probably highest-volume AMM front-end on XRPL." },
+  { name: "First Ledger (firstledger.net)", category: "DEX + AMM + memecoin launchpad", oss: "No", maintainer: "FirstLedger team", networks: "Mainnet", status: "Active", tags: ["dex"], url: "https://firstledger.net", notes: "Strong consumer adoption for memecoin trading; security posture opaque." },
+  { name: "OnTheDEX (onthedex.live)", category: "DEX charting + portfolio + alerts", oss: "Partial (data API)", maintainer: "OnTheDEX", networks: "Mainnet", status: "Active", tags: ["dex","oss"], url: "https://onthedex.live", notes: "Read-only; widely linked from token pages." },
+  { name: "XRPL.to", category: "Token screener + swap + NFT marketplace", oss: "No", maintainer: "XRPL.to", networks: "Mainnet", status: "Active", tags: ["dex"], url: "https://xrpl.to", notes: "CMC/Dexscreener alternative for XRPL." },
+  { name: "XPMarket (xpmarket.com)", category: "All-in-one DEX/NFT/trustline/discovery", oss: "No", maintainer: "XPMarket", networks: "Mainnet", status: "Active", tags: ["dex"], url: "https://xpmarket.com", notes: "Everything-in-one consumer surface." },
+  { name: "xrp.cafe", category: "NFT marketplace + launchpad", oss: "No", maintainer: "xrp.cafe (SBI partner)", networks: "Mainnet", status: "Market-leading", tags: ["dex"], url: "https://xrp.cafe", notes: "Default consumer NFT surface of XRPL. SBI partnership for JP institutional NFTs." },
+  { name: "Bidds (bidds.com)", category: "NFT marketplace", oss: "No", maintainer: "Bidds", networks: "Mainnet, Coreum", status: "Active", tags: ["dex"], url: "https://bidds.com", notes: "Second-tier NFT marketplace." },
+  { name: "Orchestra Finance", category: "AMM DEX", oss: "No", maintainer: "Orchestra", networks: "Mainnet", status: "Deprecated", tags: ["dex","dead"], url: "https://orchestra.finance", notes: "<strong>Officially deprecated.</strong> Users redirected elsewhere. Cautionary signal for AMM front-end churn." },
+  { name: "xrpl.services", category: "Tx-via-Xaman dispatcher", oss: "Yes (WietseWind)", maintainer: "Wietse Wind / XRPL Labs", networks: "Mainnet", status: "Active (low-velocity)", tags: ["signing","oss"], url: "https://xrpl.services", notes: "Takes XRPL tx JSON and routes it to Xaman for signing. Useful primitive." },
+  { name: "XRPLWin Playground", category: "Tx parser/visualiser", oss: "Yes", maintainer: "XRPLWin", networks: "Mainnet", status: "Active", tags: ["oss"], url: "https://playground.xrpl.win", notes: "Demo of XRPLWin's open-source TxMutationParser." },
+  { name: "xrpl.org Dev Tools", category: "Faucets, tx-sender, helpers", oss: "Yes", maintainer: "RippleX / XRPLF", networks: "Testnet/Devnet/AMM-Dev", status: "Active", tags: ["oss","signing"], url: "https://xrpl.org/resources/dev-tools", notes: "Developer-oriented but fragmented across pages. Includes the only XLS-80 admin HTML tool." },
+  { name: "XRPL-Commons XRPL-Connect demo", category: "Wallet-connector reference UI", oss: "Yes", maintainer: "XRPL Commons", networks: "Main/Test", status: "Active", tags: ["oss"], url: "https://xrpl-commons.github.io/xrpl-connect", notes: "Reference Connect Kit UI. Only Foundation-aligned canonical building block." },
+  { name: "create-permissioned-domains.html", category: "XLS-80 admin UI", oss: "Yes (xrpl-dev-portal)", maintainer: "RippleX", networks: "Mainnet (XLS-80 live Feb 2026)", status: "Tutorial-grade only", tags: ["oss","signing"], url: "https://xrpl.org/resources/dev-tools", notes: "Only readily-available front-end for managing XLS-80 / XLS-70 stack. Most urgent product gap." },
+  { name: "TextRP", category: "XRPL messenger + token UI", oss: "No", maintainer: "TextRP team", networks: "Mainnet", status: "Active", tags: [], url: "https://textrp.io", notes: "XRPL-native messenger with basic token/account UI." },
+  { name: "Dexter (Root Network bridge UI)", category: "Bridge UI XRPL ↔ Root", oss: "No", maintainer: "Futureverse / Root", networks: "Mainnet, Root Network", status: "Active", tags: [], url: "", notes: "Cross-chain bridge front-end for XRPL ↔ Root Network." }
+];
+
+const HEADLINES = [
+  { tone: "danger", title: "xrpl.js supply-chain remediation is unverified", body: "CVE-2025-32965 (Apr 2025, CVSS 9.3) backdoored five published versions via a phished maintainer. Post-incident commitments — provenance, 2-of-N publish, npm trusted publishing — must be audited, not assumed." },
+  { tone: "warn", title: "Amendment-coverage parity is breaking", body: "xrpl.js and xrpl-py credibly track 2025–26 amendments. xrpl4j does not — DID/Credentials/Permissioned-Domains/DEX coverage not confirmable from public release notes." },
+  { tone: "warn", title: "Single-language ecosystems are bus-factor-1", body: "Swift, PHP, Rust, Dart, Elixir, Ruby, .NET — all solo developers. For the languages that matter (iOS, merchants/exchanges, systems/MM, Flutter), Foundation has to triage." },
+  { tone: "warn", title: "No XRPL Kotlin SDK", body: "Android-Kotlin defaults and JetBrains' 2026 KMP push make this the cleanest ecosystem gap. Grant target or commission." },
+  { tone: "warn", title: "Crossmark and GemWallet dev SDKs are stale", body: "@crossmarkio/sdk last meaningful release ~2 years ago; @gemwallet/api on 3.8.0 from ~2025. Wallets ship product; dev surfaces don't. Most fixable problem in the report." },
+  { tone: "accent", title: "No Foundation-blessed Connect Kit yet", body: "XRPL-Connect (XRPL Commons) is the strongest candidate: web component + adapters for Xaman, Crossmark, GemWallet, WalletConnect, Ledger. Endorsing and resourcing it consolidates today's fragmentation." },
+  { tone: "warn", title: "XLS-72d Wallet Standard is a one-developer project", body: "tequdev has both the spec implementation and the WalletConnect XRPL library. Adoption by Xaman/Crossmark/GemWallet as first-class XLS-72d adapters is essentially zero." },
+  { tone: "warn", title: "Xaman / XRPL Labs is the single biggest consumer-side dependency", body: "Most multi-wallet UIs default to Xaman; Wietse Wind is the central bus factor. Strategic relationship, not vendor-level." },
+  { tone: "danger", title: "Institutional bottleneck is custody API limits, not custody itself", body: "Fireblocks + Dfns expose RAW XRPL signing. Coinbase Prime, Gemini, Kraken, Anchorage, BitGo, Komainu custody XRP but only expose Payment. Largest blocker to institutional adoption of new amendments." },
+  { tone: "warn", title: "Taurus is the European-bank gap", body: "Powers Deutsche Bank, Santander, State Street, CACEIS, Pictet, KBC, Swissquote, ClearBank. XRPL not on its supported list as of May 2026." },
+  { tone: "warn", title: "No maintained neutral web front-end for arbitrary XRPL ops", body: "XRP Toolkit's OSS frozen since 2019. Bithomp Tools officially discontinued. The only Foundation-owned web property close is the BETA Technical Explorer, which is read-only." },
+  { tone: "warn", title: "Multisig front-end story is weakest part of the web stack", body: "Only OSS browser multisig coordinator dormant since Sep 2019. Doesn't understand AMM/MPT/Credentials/Permissioned-Domains tx types." },
+  { tone: "danger", title: "No hosted UI for XLS-70 / XLS-80 admin beyond a tutorial HTML page", body: "XLS-80 went live Feb 2026; institutional onboarding depends on this primitive. Most urgent product gap." },
+  { tone: "good", title: "Distribution wins to repeat", body: "LOBSTR (Apr 2026, +1.3M Stellar users) and Exodus (Apr 2026, +RLUSD) via coordinated XRPL Commons / Ripple work. Templates for what good wallet coordination produces." },
+  { tone: "accent", title: "xrpl.org client-libraries page needs cleanup", body: "XpringKit, xpring-ruby, XRPKit, AktaryTech DEX SDKs, lucca65/xrpl, EdouardCourty/xrpl-php, XRBP — all need delisting or relabeling. Cheapest immediate win." }
+];
+
+const ACTIONS = [
+  { pri: 0, title: "P0 — Security & supply chain", items: [
+    "<strong>Audit xrpl.js post-CVE-2025-32965 hardening.</strong> Verify provenance, 2-of-N publish, npm trusted publishing, broadened maintainer set are actually deployed. Independent third-party review of publish pipeline."
+  ]},
+  { pri: 1, title: "P1 — Close highest-leverage gaps", items: [
+    "<strong>Sponsor Crossmark SDK release cadence.</strong> Fund existing team to ship 1.0 or fork.",
+    "<strong>Sponsor GemWallet SDK release cadence.</strong> Same shape.",
+    "<strong>Endorse and resource XRPL-Connect</strong> (XRPL Commons) as the official Connect Kit. Co-marketing + grant + adapters for any wallet not yet supported.",
+    "<strong>Drive XLS-72d to ratification</strong> with first-class wallet adapters from Xaman, Crossmark, GemWallet.",
+    "<strong>Resolve canonical Go SDK ownership.</strong> Public decision: Peersyst/xrpl-go OR XRPLF/xrpl-go. MoU around maintainership."
+  ]},
+  { pri: 2, title: "P2 — Institutional custody coordination", items: [
+    "<strong>Document institutional XRPL tx-type requirement list</strong> (TrustSet, OfferCreate, AMM tx, MPTokenIssuanceCreate, DIDSet) with Fireblocks- and Dfns-style reference patterns. Distribute to BitGo, Anchorage, Coinbase Prime, Gemini, Kraken, Komainu, Sygnum, Ceffu.",
+    "<strong>Taurus engagement.</strong> Senior outreach to add XRPL to Taurus's supported chain list. European-bank wedge.",
+    "<strong>Confirm Liminal Custody and Hex Trust roadmaps.</strong> Both aligned candidates for sponsorship or co-marketing."
+  ]},
+  { pri: 3, title: "P3 — Language-coverage hardening", items: [
+    "<strong>Sponsor xrpl-rust (sephynox) refresh</strong> or take over under XRPLF. Highest-leverage Rust grant available.",
+    "<strong>Sponsor xrpl-php (AlexanderBuzz)</strong> to bring 2026 amendment coverage to parity.",
+    "<strong>Sponsor a Kotlin / KMP SDK</strong> as a fresh grant. Pick wrappers-vs-KMP-native and scope.",
+    "<strong>Resolve XRPLSwift coverage</strong> (COI carve-out). Sponsor Transia or commission replacement.",
+    "<strong>Sponsor xrpl4j second maintainer</strong> specifically for amendment parity."
+  ]},
+  { pri: 4, title: "P4 — Front-end / signing UI", items: [
+    "<strong>Commission a Foundation-blessed, neutral, OSS web signing UI</strong> built on xrpl-connect + xrpl.js. Covers arbitrary XRPL transactions, multisig coordination, credential issuance, permissioned-domain admin. Lives under XRPLF or XRPL Commons. Closes XRP Toolkit / Bithomp Tools / multisig / XLS-80 admin gaps simultaneously.",
+    "<strong>Coordinate with Bithomp</strong> to add a deprecation banner on the live tools page and de-link from xrpl.org tutorials."
+  ]},
+  { pri: 5, title: "P5 — Curation / housekeeping", items: [
+    "<strong>xrpl.org client-libraries page cleanup pass.</strong> Delist XpringKit, xpring-ruby, XRPKit, AktaryTech DEX SDKs, lucca65/xrpl, EdouardCourty/xrpl-php, XRBP. Add a 'maintenance' column with last release + bus factor.",
+    "<strong>Formalize XUMM-OAuth2-OpenID-Provider</strong> as the hardened Sign-in-with-XRPL reference. No equivalent for Crossmark or GemWallet — Foundation funds parity.",
+    "<strong>Atomic Wallet deprecation from Foundation collateral.</strong> Ensure ecosystem pages do not list without explicit risk note.",
+    "<strong>Coordinated outreach to Brave, OneKey, Keystone, Trezor</strong> to add or deepen XRPL support. Cite LOBSTR and Exodus as templates."
+  ]}
+];
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+
+const tabsConfig = [
+  { id: "overview", label: "Overview" },
+  { id: "sdks", label: "SDKs", count: SDKS.length },
+  { id: "wallets", label: "Wallets", count: WALLETS.length },
+  { id: "libs", label: "Integration libs", count: LIBS.length },
+  { id: "custody", label: "Custody", count: CUSTODY.length },
+  { id: "frontends", label: "Front-ends", count: FRONTENDS.length },
+  { id: "actions", label: "Actions" }
+];
+
+function renderTabs() {
+  const c = document.getElementById("tabs");
+  c.innerHTML = tabsConfig.map(t => `
+    <button class="tab ${t.id==='overview'?'active':''}" data-tab="${t.id}">
+      ${t.label}${t.count !== undefined ? `<span class="tab-count">${t.count}</span>` : ''}
+    </button>
+  `).join('');
+  c.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+      const id = btn.dataset.tab;
+      document.querySelectorAll('.sec').forEach(s => s.classList.toggle('active', s.dataset.sec === id));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+}
+
+function statusBadge(s) {
+  const map = {
+    active: ['badge-good','Active'],
+    stale:  ['badge-warn','Stale'],
+    dead:   ['badge-bad','Dead'],
+    risk:   ['badge-bad','Risk'],
+    gap:    ['badge-bad','Gap'],
+    unknown:['badge-neutral','Unconfirmed']
+  };
+  const [cls, lbl] = map[s] || ['badge-neutral', s];
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+
+function busBadge(n) {
+  if (n === 0) return `<span class="bus bus-1">0</span>`;
+  if (n === 1) return `<span class="bus bus-1">1</span>`;
+  if (n === 2) return `<span class="bus bus-2">${n}</span>`;
+  return `<span class="bus bus-3">${n}+</span>`;
+}
+
+function actionBadge(a) {
+  if (!a || a === '—' || a === 'Monitor') return `<span class="badge badge-neutral">${a || '—'}</span>`;
+  if (a.toLowerCase().includes('sponsor') || a.toLowerCase().includes('take over')) return `<span class="badge badge-accent">${a}</span>`;
+  if (a.toLowerCase().includes('archive') || a.toLowerCase().includes('flag') || a.toLowerCase().includes('deprecat')) return `<span class="badge badge-bad">${a}</span>`;
+  if (a.toLowerCase().includes('coordinate') || a.toLowerCase().includes('confirm') || a.toLowerCase().includes('endorse')) return `<span class="badge badge-info">${a}</span>`;
+  if (a.toLowerCase().includes('verify')) return `<span class="badge badge-warn">${a}</span>`;
+  return `<span class="badge badge-neutral">${a}</span>`;
+}
+
+function repoLink(url) {
+  if (!url) return '';
+  const short = url.replace(/^https?:\/\//,'').replace(/^github\.com\//,'').replace(/^pub\.dev\/packages\//,'pub.dev/');
+  return `<a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${short}</a>`;
+}
+
+const tables = {
+  sdks: {
+    data: SDKS,
+    cols: [
+      { key: 'name', label: 'Name', render: r => `<td class="name">${r.name}${r.official ? ' <span class="badge badge-accent">Official</span>' : ''}</td>` },
+      { key: 'lang', label: 'Lang', render: r => `<td class="dim">${r.lang}</td>` },
+      { key: 'maintainer', label: 'Maintainer', render: r => `<td class="dim">${r.maintainer}</td>` },
+      { key: 'lastRel', label: 'Last release', render: r => `<td class="dim">${r.lastRel}</td>` },
+      { key: 'busFactor', label: 'Bus', render: r => `<td>${busBadge(r.busFactor)}</td>` },
+      { key: 'status', label: 'Status', render: r => `<td>${statusBadge(r.status)}</td>` },
+      { key: 'action', label: 'Foundation action', render: r => `<td>${actionBadge(r.action)}</td>` }
+    ],
+    detail: r => `
+      <div class="detail-grid">
+        <div><div class="lbl">Cadence</div><div class="val">${r.cadence}</div></div>
+        <div><div class="lbl">Bus factor</div><div class="val">${r.busFactor === 0 ? 'n/a' : r.busFactor}</div></div>
+        <div><div class="lbl">Status</div><div class="val">${r.status}</div></div>
+        <div><div class="lbl">Repo</div><div class="val">${repoLink(r.repo)}</div></div>
+      </div>
+      <div class="detail-note">${r.notes}</div>
+    `,
+    filters: (r, tag) => tag === 'all' || r.tags.includes(tag)
+  },
+  wallets: {
+    data: WALLETS,
+    cols: [
+      { key: 'name', label: 'Name', render: r => `<td class="name">${r.name}${r.tags.includes('new') ? ' <span class="badge badge-accent">New</span>' : ''}</td>` },
+      { key: 'platform', label: 'Platform', render: r => `<td class="dim">${r.platform}</td>` },
+      { key: 'custody', label: 'Custody', render: r => `<td class="dim">${r.custody}</td>` },
+      { key: 'networks', label: 'Networks', render: r => `<td class="dim">${r.networks}</td>` },
+      { key: 'maintainer', label: 'Maintainer', render: r => `<td class="dim">${r.maintainer}</td>` },
+      { key: 'status', label: 'Status', render: r => `<td>${statusBadge(r.status)}</td>` },
+      { key: 'action', label: 'Foundation action', render: r => `<td>${actionBadge(r.action)}</td>` }
+    ],
+    detail: r => `
+      <div class="detail-grid">
+        <div><div class="lbl">Last release</div><div class="val">${r.lastRel}</div></div>
+        <div><div class="lbl">Tags</div><div class="val">${r.tags.join(', ')}</div></div>
+      </div>
+      <div class="detail-note">${r.notes}</div>
+    `,
+    filters: (r, tag) => tag === 'all' || r.tags.includes(tag)
+  },
+  libs: {
+    data: LIBS,
+    cols: [
+      { key: 'name', label: 'Name', render: r => `<td class="name">${r.name}</td>` },
+      { key: 'lang', label: 'Lang', render: r => `<td class="dim">${r.lang}</td>` },
+      { key: 'lastRel', label: 'Last release', render: r => `<td class="dim">${r.lastRel}</td>` },
+      { key: 'maintainer', label: 'Maintainer', render: r => `<td class="dim">${r.maintainer}</td>` },
+      { key: 'connects', label: 'Connects to', render: r => `<td class="dim">${r.connects}</td>` },
+      { key: 'status', label: 'Status', render: r => `<td>${statusBadge(r.status)}</td>` },
+      { key: 'action', label: 'Foundation action', render: r => `<td>${actionBadge(r.action)}</td>` }
+    ],
+    detail: r => `
+      <div class="detail-grid">
+        <div><div class="lbl">Cadence</div><div class="val">${r.cadence}</div></div>
+      </div>
+      <div class="detail-note">${r.notes}</div>
+    `,
+    filters: (r, tag) => tag === 'all' || r.tags.includes(tag)
+  },
+  custody: {
+    data: CUSTODY,
+    cols: [
+      { key: 'name', label: 'Provider', render: r => `<td class="name">${r.name}</td>` },
+      { key: 'xrpl', label: 'XRPL support', render: r => `<td class="dim">${r.xrpl}</td>` },
+      { key: 'model', label: 'Custody model', render: r => `<td class="dim">${r.model}</td>` },
+      { key: 'raw', label: 'Raw signing', render: r => {
+        let cls = 'badge-neutral';
+        if (r.raw.toLowerCase().startsWith('yes')) cls = 'badge-good';
+        else if (r.raw.toLowerCase().startsWith('no')) cls = 'badge-bad';
+        else if (r.raw.toLowerCase().startsWith('partial')) cls = 'badge-warn';
+        else if (r.raw === 'n/a') cls = 'badge-neutral';
+        else cls = 'badge-warn';
+        return `<td><span class="badge ${cls}">${r.raw}</span></td>`;
+      }},
+      { key: 'types', label: 'Tx types beyond Payment', render: r => `<td class="dim">${r.types}</td>` },
+      { key: 'status', label: 'Note', render: r => `<td class="dim">${r.status}</td>` }
+    ],
+    detail: r => `<div class="detail-note">${r.notes}</div>`,
+    filters: (r, tag) => tag === 'all' || r.tags.includes(tag)
+  },
+  frontends: {
+    data: FRONTENDS,
+    cols: [
+      { key: 'name', label: 'Name', render: r => `<td class="name">${r.url ? `<a href="${r.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${r.name}</a>` : r.name}</td>` },
+      { key: 'category', label: 'Category', render: r => `<td class="dim">${r.category}</td>` },
+      { key: 'oss', label: 'Open source', render: r => {
+        let cls = 'badge-neutral';
+        if (r.oss === 'Yes' || r.oss.startsWith('Yes')) cls = 'badge-good';
+        else if (r.oss.startsWith('Partial')) cls = 'badge-warn';
+        else if (r.oss === 'No') cls = 'badge-bad';
+        return `<td><span class="badge ${cls}">${r.oss}</span></td>`;
+      }},
+      { key: 'maintainer', label: 'Maintainer', render: r => `<td class="dim">${r.maintainer}</td>` },
+      { key: 'networks', label: 'Networks', render: r => `<td class="dim">${r.networks}</td>` },
+      { key: 'status', label: 'Status', render: r => `<td class="dim">${r.status}</td>` }
+    ],
+    detail: r => `<div class="detail-note">${r.notes}</div>`,
+    filters: (r, tag) => tag === 'all' || r.tags.includes(tag)
+  }
+};
+
+const tableState = {};
+Object.keys(tables).forEach(k => {
+  tableState[k] = { sortKey: null, sortDir: 1, filter: 'all', search: '', expanded: new Set() };
+});
+
+function renderTable(key) {
+  const cfg = tables[key];
+  const state = tableState[key];
+  const sel = '#tbl' + key.charAt(0).toUpperCase() + key.slice(1);
+  const tbl = document.querySelector(sel);
+
+  let rows = cfg.data.slice();
+  if (state.filter !== 'all') rows = rows.filter(r => cfg.filters(r, state.filter));
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    rows = rows.filter(r => Object.values(r).some(v => typeof v === 'string' && v.toLowerCase().includes(q)));
+  }
+  if (state.sortKey) {
+    const k = state.sortKey, dir = state.sortDir;
+    rows.sort((a,b) => {
+      const av = a[k], bv = b[k];
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+  }
+
+  const head = '<thead><tr>' + cfg.cols.map(c => {
+    const isSort = state.sortKey === c.key;
+    const cls = isSort ? (state.sortDir > 0 ? 'sort-asc' : 'sort-desc') : '';
+    const arrow = isSort ? (state.sortDir > 0 ? '▲' : '▼') : '↕';
+    return `<th class="${cls}" data-sort="${c.key}">${c.label}<span class="sort-ind">${arrow}</span></th>`;
+  }).join('') + '</tr></thead>';
+
+  let body = '<tbody>';
+  if (!rows.length) {
+    body += `<tr><td colspan="${cfg.cols.length}" class="empty">No matches.</td></tr>`;
+  } else {
+    rows.forEach((r, idx) => {
+      const rowId = key + '_' + (r.name || idx);
+      const isExp = state.expanded.has(rowId);
+      body += `<tr data-rowid="${rowId}" class="${isExp ? 'expanded' : ''}">` + cfg.cols.map(c => c.render(r)).join('') + '</tr>';
+      if (isExp) {
+        body += `<tr class="detail-row"><td colspan="${cfg.cols.length}">${cfg.detail(r)}</td></tr>`;
+      }
+    });
+  }
+  body += '</tbody>';
+  tbl.innerHTML = head + body;
+
+  tbl.querySelectorAll('thead th').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      if (state.sortKey === k) state.sortDir *= -1;
+      else { state.sortKey = k; state.sortDir = 1; }
+      renderTable(key);
+    });
+  });
+  tbl.querySelectorAll('tbody tr[data-rowid]').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const id = tr.dataset.rowid;
+      if (state.expanded.has(id)) state.expanded.delete(id);
+      else state.expanded.add(id);
+      renderTable(key);
+    });
+  });
+}
+
+function wireFilters() {
+  document.querySelectorAll('.search').forEach(input => {
+    input.addEventListener('input', () => {
+      const target = input.dataset.target;
+      tableState[target].search = input.value;
+      renderTable(target);
+    });
+  });
+  document.querySelectorAll('.chip-filters').forEach(group => {
+    const target = group.dataset.target;
+    group.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        group.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+        chip.classList.add('on');
+        tableState[target].filter = chip.dataset.filter;
+        renderTable(target);
+      });
+    });
+  });
+}
+
+function renderKPIs() {
+  const totalItems = SDKS.length + WALLETS.length + LIBS.length + CUSTODY.length + FRONTENDS.length;
+  const bf1 = SDKS.filter(s => s.busFactor === 1).length + LIBS.filter(l => l.maintainer && (l.maintainer.toLowerCase().includes('individual') || l.maintainer === 'tequ')).length;
+  const stale = SDKS.filter(s => ['stale','dead'].includes(s.status)).length + LIBS.filter(l => l.status === 'stale').length;
+  const sponsor = SDKS.filter(s => s.tags.includes('sponsor')).length + WALLETS.filter(w => w.tags.includes('sponsor')).length + LIBS.filter(l => l.tags.includes('sponsor')).length;
+  const rawNo = CUSTODY.filter(c => c.tags.includes('raw-no')).length;
+  const c = document.getElementById('kpiRow');
+  c.innerHTML = `
+    <div class="kpi accent"><div class="kpi-label">Total items tracked</div><div class="kpi-value">${totalItems}</div><div class="kpi-sub">SDKs, wallets, libs, custody, front-ends</div></div>
+    <div class="kpi danger"><div class="kpi-label">Bus-factor-1 SDKs</div><div class="kpi-value">${bf1}</div><div class="kpi-sub">Solo maintainers carrying critical surface</div></div>
+    <div class="kpi warn"><div class="kpi-label">Stale or dead SDKs / libs</div><div class="kpi-value">${stale}</div><div class="kpi-sub">Need delist, archive, or refresh</div></div>
+    <div class="kpi accent"><div class="kpi-label">Sponsor candidates</div><div class="kpi-value">${sponsor}</div><div class="kpi-sub">High-leverage Foundation grants</div></div>
+    <div class="kpi danger"><div class="kpi-label">Custodians without raw signing</div><div class="kpi-value">${rawNo}</div><div class="kpi-sub">Custody XRP but Payment-only API</div></div>
+  `;
+}
+
+function renderOverview() {
+  const ov = document.getElementById('ovGrid');
+  const sdkActive = SDKS.filter(s => s.status === 'active').length;
+  const sdkStale = SDKS.filter(s => s.status === 'stale').length;
+  const sdkDead = SDKS.filter(s => ['dead','gap'].includes(s.status)).length;
+  const walletActive = WALLETS.filter(w => w.status === 'active').length;
+  const walletRisk = WALLETS.filter(w => ['risk','gap'].includes(w.status)).length;
+  const libActive = LIBS.filter(l => l.status === 'active').length;
+  const libStale = LIBS.filter(l => l.status === 'stale').length;
+  const custRawYes = CUSTODY.filter(c => c.tags.includes('raw-yes')).length;
+  const custRawNo = CUSTODY.filter(c => c.tags.includes('raw-no')).length;
+  const custNoXrpl = CUSTODY.filter(c => c.tags.includes('no-xrpl')).length;
+
+  function bar(parts) {
+    const total = parts.reduce((a,b) => a + b.n, 0);
+    if (!total) return '';
+    return `<div class="ov-bar">${parts.map(p => `<div class="${p.cls}" style="width:${(p.n/total*100).toFixed(1)}%"></div>`).join('')}</div>
+      <div class="ov-legend">${parts.map(p => `<span><span class="dot" style="background:var(--${p.cls})"></span>${p.label} (${p.n})</span>`).join('')}</div>`;
+  }
+
+  ov.innerHTML = `
+    <div class="ov-card">
+      <h3>SDKs <span class="count">${SDKS.length}</span></h3>
+      ${bar([{cls:'good',n:sdkActive,label:'Active'},{cls:'warn',n:sdkStale,label:'Stale'},{cls:'bad',n:sdkDead,label:'Dead / Gap'}])}
+    </div>
+    <div class="ov-card">
+      <h3>Wallet apps <span class="count">${WALLETS.length}</span></h3>
+      ${bar([{cls:'good',n:walletActive,label:'Active'},{cls:'bad',n:walletRisk,label:'Risk / Gap'}])}
+    </div>
+    <div class="ov-card">
+      <h3>Integration libs <span class="count">${LIBS.length}</span></h3>
+      ${bar([{cls:'good',n:libActive,label:'Active'},{cls:'warn',n:libStale,label:'Stale'}])}
+    </div>
+    <div class="ov-card">
+      <h3>Custody (raw signing) <span class="count">${CUSTODY.length}</span></h3>
+      ${bar([{cls:'good',n:custRawYes,label:'Raw signing'},{cls:'warn',n:custRawNo,label:'Payment-only'},{cls:'bad',n:custNoXrpl,label:'No XRPL'}])}
+    </div>
+  `;
+}
+
+function renderHeadlines() {
+  const c = document.getElementById('headlines');
+  c.innerHTML = HEADLINES.map((h,i) => `
+    <div class="hl ${h.tone === 'danger' ? 'danger' : h.tone === 'warn' ? 'warn' : h.tone === 'good' ? 'good' : ''}">
+      <div class="hl-num">Finding ${String(i+1).padStart(2,'0')}</div>
+      <div class="hl-title">${h.title}</div>
+      <div class="hl-body">${h.body}</div>
+    </div>
+  `).join('');
+}
+
+function renderActions() {
+  const c = document.getElementById('actionsList');
+  c.innerHTML = ACTIONS.map(a => `
+    <div class="act">
+      <div class="act-head">
+        <span class="act-pri pri-${a.pri}">P${a.pri}</span>
+        <span class="act-title">${a.title.replace(/^P\d+ — /,'')}</span>
+      </div>
+      <ul>${a.items.map(it => `<li>${it}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+}
+
+// init
+renderTabs();
+renderKPIs();
+renderOverview();
+renderHeadlines();
+renderActions();
+['sdks','wallets','libs','custody','frontends'].forEach(renderTable);
+wireFilters();
+</script>
+
+</body>
+</html>
