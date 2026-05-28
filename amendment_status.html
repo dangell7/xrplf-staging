@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A4 — XRPL Amendment Pipeline</title>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg-alt: #0f1424;
+  --card: #141a2b;
+  --card-hover: #1a2238;
+  --border: #1f2940;
+  --border-strong: #2a3656;
+  --text: #e6edf6;
+  --text-dim: #8b95a8;
+  --text-faint: #5d6679;
+  --accent: #38bdf8;
+  --accent-dim: #0ea5e9;
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --info: #818cf8;
+  --shadow: 0 10px 40px -10px rgba(0,0,0,0.6);
+}
+* { box-sizing: border-box; }
+html,body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text);
+  background: radial-gradient(ellipse at top, #131a2e 0%, var(--bg) 50%) fixed;
+  min-height: 100vh;
+}
+.wrap { max-width: 1440px; margin: 0 auto; padding: 40px 32px; }
+.mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace; }
+
+/* hero */
+.hero { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 32px; }
+.chip-hero {
+  display: inline-block; padding: 4px 10px; border: 1px solid var(--accent-dim);
+  border-radius: 4px; background: rgba(56,189,248,0.06); color: var(--accent);
+  letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; font-weight: 600;
+  margin-bottom: 14px;
+}
+h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 12px 0; }
+h1 .grad {
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hero p { color: var(--text-dim); margin: 0; max-width: 880px; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 18px; font-size: 12px; color: var(--text-faint); }
+.hero-meta span b { color: var(--text-dim); font-weight: 500; }
+
+h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 16px 0; }
+h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px 0; }
+.lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); }
+p, li { color: var(--text-dim); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* kpi row */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 32px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+.kpi .lbl { margin-bottom: 8px; }
+.kpi .val { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.kpi .sub { font-size: 12px; color: var(--text-faint); margin-top: 6px; }
+.val-good { color: var(--good); }
+.val-warn { color: var(--warn); }
+.val-bad { color: var(--bad); }
+.val-accent { color: var(--accent); }
+.val-info { color: var(--info); }
+
+/* tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 28px; overflow-x: auto; }
+.tab {
+  background: none; border: none; padding: 12px 16px; cursor: pointer;
+  font-family: inherit; font-size: 13px; color: var(--text-dim); font-weight: 500;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab .count {
+  background: var(--border); color: var(--text-dim); border-radius: 999px;
+  padding: 1px 8px; font-size: 11px; font-weight: 600;
+}
+.tab.active .count { background: rgba(56,189,248,0.13); color: var(--accent); }
+
+/* section */
+.sec { display: none; }
+.sec.active { display: block; }
+.sec-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.sec-head h2 { margin: 0; }
+.sec-head p { margin: 0; color: var(--text-dim); font-size: 13px; max-width: 720px; }
+
+/* headline / action cards */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+.card.tone-bad { border-left: 3px solid var(--bad); }
+.card.tone-warn { border-left: 3px solid var(--warn); }
+.card.tone-good { border-left: 3px solid var(--good); }
+.card.tone-accent { border-left: 3px solid var(--accent); }
+.card .lbl { margin-bottom: 10px; }
+.card h3 { color: var(--text); margin-bottom: 6px; font-size: 15px; }
+.card p { font-size: 13px; margin: 0; }
+.card p + p { margin-top: 8px; }
+
+/* filter row */
+.filter-row { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.search {
+  flex: 1; min-width: 220px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; color: var(--text); font-family: inherit; font-size: 13px;
+  transition: border-color 0.15s;
+}
+.search:focus { outline: none; border-color: var(--accent-dim); }
+.search::placeholder { color: var(--text-faint); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.fchip {
+  background: var(--card); color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.fchip:hover { color: var(--text); }
+.fchip.active { background: rgba(56,189,248,0.1); color: var(--accent); border-color: var(--accent-dim); }
+
+/* table */
+.tbl-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: var(--bg-alt); color: var(--text-dim); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
+  padding: 12px 14px; border-bottom: 1px solid var(--border-strong);
+  user-select: none;
+}
+thead th.sortable { cursor: pointer; }
+thead th .arrow { color: var(--text-faint); margin-left: 4px; font-size: 10px; }
+thead th.sortable:hover { color: var(--text); }
+tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+tbody tr { transition: background 0.15s; cursor: pointer; }
+tbody tr:hover:not(.detail-row) { background: var(--card-hover); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr.detail-row { background: var(--bg-alt); cursor: default; }
+tbody tr.detail-row:hover { background: var(--bg-alt); }
+tbody tr.detail-row td {
+  border-top: 1px dashed var(--border-strong); border-bottom: 1px solid var(--border);
+  padding: 16px 20px; color: var(--text-dim); font-size: 13px;
+}
+tbody tr.detail-row p { margin: 0 0 8px 0; }
+tbody tr.detail-row p:last-child { margin-bottom: 0; }
+tbody tr.detail-row strong { color: var(--text); font-weight: 600; }
+tbody tr.detail-row ul { margin: 6px 0 8px 18px; padding: 0; }
+tbody tr.detail-row li { margin-bottom: 4px; }
+
+/* status badges */
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 500; line-height: 1.5;
+}
+.badge-good { background: rgba(74,222,128,0.13); color: var(--good); }
+.badge-warn { background: rgba(251,191,36,0.13); color: var(--warn); }
+.badge-bad { background: rgba(248,113,113,0.13); color: var(--bad); }
+.badge-info { background: rgba(129,140,248,0.13); color: var(--info); }
+.badge-accent { background: rgba(56,189,248,0.13); color: var(--accent); }
+.badge-neutral { background: var(--border); color: var(--text-dim); }
+
+.bus { display: inline-block; min-width: 32px; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px; text-align: center; }
+.bus-0 { background: rgba(248,113,113,0.13); color: var(--bad); }
+.bus-1 { background: rgba(251,191,36,0.13); color: var(--warn); }
+.bus-2 { background: rgba(74,222,128,0.13); color: var(--good); }
+
+.prio { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; }
+.prio-p0 { background: rgba(248,113,113,0.13); color: var(--bad); }
+.prio-p1 { background: rgba(251,191,36,0.13); color: var(--warn); }
+.prio-p2 { background: rgba(56,189,248,0.13); color: var(--accent); }
+.prio-p3 { background: rgba(129,140,248,0.13); color: var(--info); }
+.prio-p4 { background: rgba(74,222,128,0.13); color: var(--good); }
+.prio-p5 { background: var(--border); color: var(--text-dim); }
+
+.action {
+  display: inline-block; padding: 2px 9px; border-radius: 4px; font-weight: 600;
+  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.act-monitor { background: rgba(129,140,248,0.13); color: var(--info); }
+.act-sponsor { background: rgba(74,222,128,0.13); color: var(--good); }
+.act-coordinate { background: rgba(56,189,248,0.13); color: var(--accent); }
+.act-takeover { background: rgba(56,189,248,0.13); color: var(--accent); }
+.act-archive { background: var(--border); color: var(--text-faint); }
+.act-flag { background: rgba(251,191,36,0.13); color: var(--warn); }
+.act-verify { background: rgba(251,191,36,0.13); color: var(--warn); }
+.act-block { background: rgba(248,113,113,0.13); color: var(--bad); }
+
+.coi {
+  background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.25);
+  border-left: 3px solid var(--warn); border-radius: 8px;
+  padding: 14px 18px; margin-bottom: 24px; font-size: 13px; color: var(--text-dim);
+}
+.coi strong { color: var(--warn); }
+
+.amend-name { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace; font-size: 12.5px; color: var(--text); }
+.muted { color: var(--text-faint); }
+
+footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 12px; }
+footer a { color: var(--text-dim); }
+
+@media (max-width: 768px) {
+  .wrap { padding: 24px 18px; }
+  h1 { font-size: 28px; }
+  .kpi .val { font-size: 24px; }
+  thead th, tbody td { padding: 9px 10px; font-size: 12px; }
+  .hide-mobile { display: none; }
+}
+@media print {
+  body { background: white; color: black; }
+  .tabs, .filter-row, footer { display: none; }
+  .sec { display: block !important; page-break-before: always; }
+  .sec:first-of-type { page-break-before: avoid; }
+  .card, .kpi, .tbl-wrap { box-shadow: none; border-color: #ccc; background: white; color: black; }
+  thead th, tbody td { color: black; border-color: #ddd; }
+  h1 .grad { -webkit-text-fill-color: black; color: black; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ======================== HERO ======================== -->
+  <div class="hero">
+    <span class="chip-hero">A4 · Technical Debrief</span>
+    <h1>XRPL <span class="grad">Amendment Pipeline</span></h1>
+    <p>In-flight amendments — registered in <span class="mono">rippled</span>, in open PRs, or in active XLS specification. Excludes amendments already enabled on Mainnet. Feeds B4 (code reviews) and C4 (Protocol Priorities).</p>
+    <div class="hero-meta">
+      <span class="lbl">Author <b style="text-transform:none;letter-spacing:0;">Denis Angell · XRPL Foundation</b></span>
+      <span class="lbl">Updated <b style="text-transform:none;letter-spacing:0;">2026-05-21</b></span>
+      <span class="lbl">Develop <b class="mono" style="text-transform:none;letter-spacing:0;">f6fd5dd</b></span>
+      <span class="lbl">Release <b class="mono" style="text-transform:none;letter-spacing:0;">3.2.0-b5</b> / stable <b class="mono" style="text-transform:none;letter-spacing:0;">3.1.3</b></span>
+    </div>
+  </div>
+
+  <!-- ======================== KPI ROW ======================== -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="lbl">Eligible for vote</div><div class="val val-accent">15</div><div class="sub">Supported::Yes in develop</div></div>
+    <div class="kpi"><div class="lbl">Placeholders</div><div class="val val-warn">6</div><div class="sub">Supported::No, pre-vote</div></div>
+    <div class="kpi"><div class="lbl">Open PRs (amendments)</div><div class="val val-good">19</div><div class="sub">confirmed + likely-gated</div></div>
+    <div class="kpi"><div class="lbl">Fork-only amendments</div><div class="val val-info">10+</div><div class="sub">Transia + RichardAH</div></div>
+    <div class="kpi"><div class="lbl">XLS specs drafting</div><div class="val val-info">17</div><div class="sub">no rippled PR yet</div></div>
+    <div class="kpi"><div class="lbl">Spec-drift risks</div><div class="val val-bad">3</div><div class="sub">LendingProtocol · Batch · CLAMM</div></div>
+  </div>
+
+  <!-- COI / scope note -->
+  <div class="coi">
+    <strong>Scope note.</strong> Live Mainnet vote percentages were not verified — <span class="mono">xrpl.org</span>, <span class="mono">livenet.xrpl.org</span>, <span class="mono">xrpscan.com</span> are not on the workspace network allowlist. Cross-check the §Registered list against a Mainnet <span class="mono">feature</span> RPC call before circulating externally. Fork-branch XRPL_FIX entries may be undercounted (HTML scraping limitation).
+  </div>
+
+  <!-- ======================== TABS ======================== -->
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="registered">Registered in develop <span class="count">21</span></button>
+    <button class="tab" data-tab="prs">Open PRs <span class="count">19</span></button>
+    <button class="tab" data-tab="forks">Forks <span class="count">14</span></button>
+    <button class="tab" data-tab="xls">XLS Drafts <span class="count">17</span></button>
+    <button class="tab" data-tab="risks">Risks &amp; Recommendations</button>
+  </div>
+
+  <!-- ======================== OVERVIEW ======================== -->
+  <section class="sec active" id="sec-overview">
+    <div class="sec-head">
+      <div>
+        <h2>Executive summary</h2>
+        <p>The pipeline is unusually loaded. The biggest themes are the WASM/Smart-Contract arc (XLS-100→101→102), the MPT extension family (V2 · Dynamic · Confidential · DEX · PermissionedDomain), and the Lending stack (Vault → LendingProtocol).</p>
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card tone-bad">
+        <div class="lbl">Risk · Spec drift</div>
+        <h3>LendingProtocol shipping ahead of XLS-66</h3>
+        <p>Registered <span class="mono">Supported::Yes</span> in develop while XLS-66 has 5+ open spec PRs (#484, #494–#497, #538). Equation (23) had a math bug a week ago. Implementation may diverge from final spec.</p>
+        <p><span class="action act-block">Block</span> Mainnet vote until XLS-66 marked Final and impl re-diffed.</p>
+      </div>
+      <div class="card tone-warn">
+        <div class="lbl">Risk · Duplicate amendment</div>
+        <h3>Batch vs BatchV1_1 collision</h3>
+        <p>Develop has <span class="mono">XRPL_FEATURE(Batch, Supported::No)</span> while PR #6446 proposes <span class="mono">BatchV1_1</span> with a rename. Risk of two amendments visible to operators with no clear deprecation path.</p>
+        <p><span class="action act-coordinate">Coordinate</span> drop one before promoting either to Supported::Yes.</p>
+      </div>
+      <div class="card tone-warn">
+        <div class="lbl">Risk · Design split</div>
+        <h3>CLAMM has two competing implementations</h3>
+        <p>PR #6605 (RomThpt, XLS-99 + CLAMMPosition ledger object) vs PR #5697 (LJ-XRPL, alternative design). XRPL-Standards PR #498 is a third draft without an XLS number.</p>
+        <p><span class="action act-coordinate">Coordinate</span> design council before either PR advances.</p>
+      </div>
+      <div class="card tone-warn">
+        <div class="lbl">Risk · Validator fatigue</div>
+        <h3>10+ fix amendments in the next ballot</h3>
+        <p>Historically validators skip individual votes when ballots are long. Bundle related fixes; provide one-pager per amendment.</p>
+        <p><span class="action act-coordinate">Coordinate</span> ballot bundling with validator outreach.</p>
+      </div>
+      <div class="card tone-good">
+        <div class="lbl">Ready · Low risk</div>
+        <h3>fixConstantInvariant (#7029)</h3>
+        <p>Defence-in-depth invariant ensuring only mutable-declared fields are mutated. Should land <em>before</em> Smart Escrows — catches a class of WASM sandbox-escape that is otherwise subtle.</p>
+        <p><span class="action act-sponsor">Sponsor</span> promote and vote ahead of XLS-100.</p>
+      </div>
+      <div class="card tone-good">
+        <div class="lbl">Ready · Low risk</div>
+        <h3>SingleAssetVault (XLS-65)</h3>
+        <p>Spec is final-ish; post-merge fixes (#469, #470, #485) are operational refinements. Should activate one Mainnet round before LendingProtocol.</p>
+        <p><span class="action act-sponsor">Sponsor</span> publish changelog, schedule vote.</p>
+      </div>
+      <div class="card tone-accent">
+        <div class="lbl">Pipeline · Long horizon</div>
+        <h3>WASM smart contracts arc</h3>
+        <p>XLS-100 (Smart Escrows) → XLS-101 (Smart Contracts) → XLS-102 (WASM VM). Wasmi runtime in PR #6075. Twelve-month minimum to Mainnet vote with external audit.</p>
+        <p><span class="action act-coordinate">Coordinate</span> spec freeze for XLS-102 first.</p>
+      </div>
+      <div class="card tone-accent">
+        <div class="lbl">Pipeline · Fork-only</div>
+        <h3>Transia experimental amendments</h3>
+        <p>Six amendments live in <span class="mono">Transia-RnD/rippled</span> with no upstream PR yet: <span class="mono">Quantum</span> (post-quantum signing), <span class="mono">Passkey</span> (P-256/WebAuthn), <span class="mono">Options</span> (XLS-62), <span class="mono">ImportExport</span>, <span class="mono">Firewall</span> v3, <span class="mono">SmartContract</span> umbrella.</p>
+        <p><span class="action act-coordinate">Coordinate</span> upstream roadmap with Transia.</p>
+      </div>
+      <div class="card tone-good">
+        <div class="lbl">Blackhole · Resolved</div>
+        <h3>fixTokenEscrowV1_1 (#7121)</h3>
+        <p>Allows escrow flows for blackholed accounts (master key disabled, no regular key). Only in-flight upstream amendment that handles blackhole semantics — no other gaps in this area.</p>
+        <p><span class="action act-sponsor">Sponsor</span> review-ready, small surface, ship in next release.</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 28px;">Pipeline at a glance</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Stage</th><th>Count</th><th>Typical risk class</th><th>Action mode</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Drafting</strong> — XLS spec, no rippled code</td><td>17 specs</td><td>Design ambiguity, missing security properties</td><td><span class="action act-monitor">Monitor</span></td></tr>
+          <tr><td><strong>Implementation</strong> — open PR registering amendment</td><td>19 PRs</td><td>Code correctness, invariant coverage, test depth, dependencies</td><td><span class="action act-coordinate">Coordinate</span></td></tr>
+          <tr><td><strong>Pre-vote</strong> — merged but Supported::No</td><td>6</td><td>Spec/impl review pending; not yet votable</td><td><span class="action act-flag">Flag</span></td></tr>
+          <tr><td><strong>Voting</strong> — merged Supported::Yes, DefaultNo</td><td>15</td><td>Activation timing, validator coordination, downstream tooling</td><td><span class="action act-sponsor">Sponsor</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================== REGISTERED ======================== -->
+  <section class="sec" id="sec-registered">
+    <div class="sec-head">
+      <div>
+        <h2>Registered in develop</h2>
+        <p>Amendments merged into <span class="mono">XRPLF/rippled@develop</span>. Click any row for the deep-technical debrief: txn/ledger changes, security &amp; invariant impact, dependencies, recommendation.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input class="search" data-target="t-reg" placeholder="Search amendments, identifiers, XLS numbers…">
+      <div class="chips" data-target="t-reg">
+        <button class="fchip active" data-filter="all">All</button>
+        <button class="fchip" data-filter="feature">Features</button>
+        <button class="fchip" data-filter="fix">Fixes</button>
+        <button class="fchip" data-filter="placeholder">Pre-vote (Supported::No)</button>
+        <button class="fchip" data-filter="vote">Eligible for vote</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="t-reg">
+        <thead><tr>
+          <th class="sortable" data-key="name">Identifier <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="kind">Kind <span class="arrow">↕</span></th>
+          <th class="sortable hide-mobile" data-key="spec">Spec <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="state">State <span class="arrow">↕</span></th>
+          <th class="sortable hide-mobile" data-key="risk">Risk <span class="arrow">↕</span></th>
+          <th>Action</th>
+        </tr></thead>
+        <tbody id="tb-reg"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================== OPEN PRS ======================== -->
+  <section class="sec" id="sec-prs">
+    <div class="sec-head">
+      <div>
+        <h2>Open PRs proposing amendments</h2>
+        <p>PRs not yet merged into develop. Includes confirmed amendment PRs (Feature.cpp / features.macro modifying) and likely-amendment PRs that need amendment-gating confirmation.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input class="search" data-target="t-prs" placeholder="Search PRs, authors, amendment IDs…">
+      <div class="chips" data-target="t-prs">
+        <button class="fchip active" data-filter="all">All</button>
+        <button class="fchip" data-filter="ready">Ready</button>
+        <button class="fchip" data-filter="draft">Draft</button>
+        <button class="fchip" data-filter="confirmed">Confirmed amendment</button>
+        <button class="fchip" data-filter="likely">Likely amendment</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="t-prs">
+        <thead><tr>
+          <th class="sortable" data-key="pr">PR <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="title">Title / Amendment <span class="arrow">↕</span></th>
+          <th class="sortable hide-mobile" data-key="author">Author <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="state">State <span class="arrow">↕</span></th>
+          <th class="sortable hide-mobile" data-key="opened">Opened <span class="arrow">↕</span></th>
+          <th>Action</th>
+        </tr></thead>
+        <tbody id="tb-prs"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================== FORKS ======================== -->
+  <section class="sec" id="sec-forks">
+    <div class="sec-head">
+      <div>
+        <h2>Fork-only amendments</h2>
+        <p>Experimental amendments living in <span class="mono">rippled</span> forks with no upstream PR yet. Transia-RnD is the most fertile fork; sorted by last push.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input class="search" data-target="t-fork" placeholder="Search forks, branches, amendment IDs…">
+      <div class="chips" data-target="t-fork">
+        <button class="fchip active" data-filter="all">All</button>
+        <button class="fchip" data-filter="transia">Transia-RnD</button>
+        <button class="fchip" data-filter="other">Other forks</button>
+        <button class="fchip" data-filter="supyes">Supported::yes</button>
+        <button class="fchip" data-filter="multi">Multi-fork corroboration</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="t-fork">
+        <thead><tr>
+          <th class="sortable" data-key="fork">Fork / Branch <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="amend">Amendment <span class="arrow">↕</span></th>
+          <th class="sortable hide-mobile" data-key="sup">Supported <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="theme">Theme <span class="arrow">↕</span></th>
+          <th>Action</th>
+        </tr></thead>
+        <tbody id="tb-fork"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================== XLS DRAFTS ======================== -->
+  <section class="sec" id="sec-xls">
+    <div class="sec-head">
+      <div>
+        <h2>XLS specs without rippled implementation</h2>
+        <p>Spec-only at present — important for C4 Protocol Priorities, not subjects of the next vote.</p>
+      </div>
+    </div>
+    <div class="filter-row">
+      <input class="search" data-target="t-xls" placeholder="Search XLS numbers, titles, authors…">
+      <div class="chips" data-target="t-xls">
+        <button class="fchip active" data-filter="all">All</button>
+        <button class="fchip" data-filter="draft">Active draft</button>
+        <button class="fchip" data-filter="stagnant">Stagnant / Superseded</button>
+        <button class="fchip" data-filter="mpt">MPT family</button>
+        <button class="fchip" data-filter="ux">UX primitives</button>
+        <button class="fchip" data-filter="compliance">Compliance</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="t-xls">
+        <thead><tr>
+          <th class="sortable" data-key="xls">XLS <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="title">Title <span class="arrow">↕</span></th>
+          <th class="sortable hide-mobile" data-key="theme">Theme <span class="arrow">↕</span></th>
+          <th class="sortable hide-mobile" data-key="state">State <span class="arrow">↕</span></th>
+          <th>Action</th>
+        </tr></thead>
+        <tbody id="tb-xls"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================== RISKS ======================== -->
+  <section class="sec" id="sec-risks">
+    <div class="sec-head">
+      <div>
+        <h2>Cross-cutting risks &amp; process recommendations</h2>
+        <p>Failure modes that span amendments and the process gates that close them.</p>
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card tone-bad">
+        <div class="lbl">Process · Spec drift</div>
+        <h3>Code-freeze before spec-freeze</h3>
+        <p><span class="mono">LendingProtocol</span> in develop with <span class="mono">Supported::Yes</span> while XLS-66 still drifting. Pattern repeats with CLAMM and Batch.</p>
+        <p><strong>Fix:</strong> introduce an explicit gate — an amendment cannot be merged with <span class="mono">Supported::Yes</span> unless the corresponding XLS is marked Final.</p>
+      </div>
+      <div class="card tone-warn">
+        <div class="lbl">Process · Invariants</div>
+        <h3>Invariant-per-new-object rule</h3>
+        <p>Several recent amendments expand mutation surface without proportional invariant growth. PRs #7272, #7285, #7295, #6736 are post-hoc additions on already-merged work.</p>
+        <p><strong>Fix:</strong> for every new ledger object, require a dedicated invariant in <span class="mono">InvariantCheck.cpp</span> verifying asset conservation across the object's lifecycle. Apply retroactively to LendingProtocol, SingleAssetVault, PermissionedDEX.</p>
+      </div>
+      <div class="card tone-warn">
+        <div class="lbl">Process · Ballot</div>
+        <h3>Validator fatigue at long ballots</h3>
+        <p>10+ fix amendments and 4–5 features in the next ballot. Validators historically skip individual votes when ballots are dense.</p>
+        <p><strong>Fix:</strong> bundle "uncontroversial cleanup" fixes; publish a per-amendment one-pager to validators ahead of each round.</p>
+      </div>
+      <div class="card tone-warn">
+        <div class="lbl">Process · Duplicates</div>
+        <h3>Batch / BatchV1_1 visibility hazard</h3>
+        <p>Two amendment identifiers, one feature. Operators reading the registry will be confused.</p>
+        <p><strong>Fix:</strong> retire one before either promotes to <span class="mono">Supported::Yes</span>. Document the rename in release notes.</p>
+      </div>
+      <div class="card tone-warn">
+        <div class="lbl">Process · Un-flagged behaviour changes</div>
+        <h3>Stop-loss / add-sentinel pattern</h3>
+        <p>Transia fork branches modify protocol behaviour without registering a new feature flag. If any such pattern reaches upstream un-gated, it is a deploy-time hazard.</p>
+        <p><strong>Fix:</strong> B4 review must confirm amendment-gating as the first action on every behaviour-changing PR. Likely-amendment PRs (#7285, #7299, #7272, #7295, #6736, #6853) should be checked first.</p>
+      </div>
+      <div class="card tone-accent">
+        <div class="lbl">Process · MPT roadmap</div>
+        <h3>MPT family coordination</h3>
+        <p>MPTokensV2 · DynamicMPT · XLS-82 (MPT DEX) · XLS-90 (PermissionedDomain MPT) · XLS-96 (Confidential MPT) all touch the same primitive.</p>
+        <p><strong>Fix:</strong> publish a single MPT roadmap stating which functionality lives in V2, which is independent, and the migration story for V1 issuances.</p>
+      </div>
+      <div class="card tone-accent">
+        <div class="lbl">Process · WASM ordering</div>
+        <h3>XLS-100 → 101 → 102 merge order</h3>
+        <p><strong>Required order:</strong> (1) fixConstantInvariant (#7029); (2) WASM runtime PR #6075; (3) XLS-102 final; (4) Smart Escrows (#6329); (5) Smart Contracts (#5809) ≥6 months later. Skipping invites Devnet correctness becoming Mainnet incidents.</p>
+      </div>
+      <div class="card tone-good">
+        <div class="lbl">Pipeline · Quick wins</div>
+        <h3>PermissionedDomainInvariant &amp; ExpiredNFTokenOfferRemoval</h3>
+        <p>Registered <span class="mono">Supported::yes</span> across 8+ fork branches each but missing from develop. Lowest-risk, highest-readiness candidates for the next fix-bundle PR alongside <span class="mono">Cleanup3_2_0</span>.</p>
+        <p><span class="action act-takeover">Take over</span> open the upstream PR.</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 28px;">B4 review priority (code reviews)</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Priority</th><th>PR</th><th>Focus</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><span class="prio prio-p0">P0</span></td><td>#7029 fixConstantInvariant</td><td>Defensive landing target — must merge before XLS-100</td><td><span class="action act-sponsor">Sponsor</span></td></tr>
+          <tr><td><span class="prio prio-p0">P0</span></td><td>#6446 BatchV1_1</td><td>Design clarification on placeholder cleanup before review</td><td><span class="action act-coordinate">Coordinate</span></td></tr>
+          <tr><td><span class="prio prio-p1">P1</span></td><td>#6329 Smart Escrows + #6075 WASM runtime</td><td>Review as a unit; sandbox audit; XLS-102 final required</td><td><span class="action act-coordinate">Coordinate</span></td></tr>
+          <tr><td><span class="prio prio-p1">P1</span></td><td>#6605 CLAMM &amp; #5697 alt CLAMM</td><td>Paired review post-design-council</td><td><span class="action act-block">Block</span></td></tr>
+          <tr><td><span class="prio prio-p2">P2</span></td><td>#7121 fixTokenEscrowV1_1</td><td>Small, ready — blackhole escrow flows</td><td><span class="action act-sponsor">Sponsor</span></td></tr>
+          <tr><td><span class="prio prio-p2">P2</span></td><td>#6368 NestedMultiSign</td><td>Recursion-bound review; needs XLS number</td><td><span class="action act-flag">Flag</span></td></tr>
+          <tr><td><span class="prio prio-p2">P2</span></td><td>#5887 Sponsor (XLS-68)</td><td>Re-activate draft, high user-value</td><td><span class="action act-takeover">Take over</span></td></tr>
+          <tr><td><span class="prio prio-p2">P2</span></td><td>#5448 TokenPaychan (XLS-93)</td><td>Sequence behind TokenEscrow on Mainnet</td><td><span class="action act-monitor">Monitor</span></td></tr>
+          <tr><td><span class="prio prio-p3">P3</span></td><td>#5860 Confidential MPT</td><td>Block until cryptographic review scheduled</td><td><span class="action act-block">Block</span></td></tr>
+          <tr><td><span class="prio prio-p3">P3</span></td><td>#5577 fixEnforceTrustlineAuth</td><td>Re-activate draft, compliance-relevant</td><td><span class="action act-takeover">Take over</span></td></tr>
+          <tr><td><span class="prio prio-p3">P3</span></td><td>#5704, #6113, #6307, #6405</td><td>Small fixes; verify amendment-gating</td><td><span class="action act-verify">Verify</span></td></tr>
+          <tr><td><span class="prio prio-p4">P4</span></td><td>#7272, #7285, #7295, #6736, #6853, #7299</td><td>Likely-amendment PRs — confirm gating first</td><td><span class="action act-verify">Verify</span></td></tr>
+          <tr><td><span class="prio prio-p5">P5</span></td><td>#4847 XLS-42 Plugins</td><td>Stagnant since 2023; superseded by WASM</td><td><span class="action act-archive">Archive</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-top: 28px;">C4 protocol-priority themes</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Theme</th><th>Scope</th><th>Horizon</th></tr></thead>
+        <tbody>
+          <tr><td><strong>WASM / Smart Contracts</strong></td><td>XLS-100 / 101 / 102 — multi-year programme</td><td><span class="badge badge-info">12+ months</span></td></tr>
+          <tr><td><strong>MPT maturation</strong></td><td>V2 + Dynamic + DEX + PermissionedDomain + Confidential — coordinated track</td><td><span class="badge badge-warn">6–12 months</span></td></tr>
+          <tr><td><strong>Lending stack</strong></td><td>Vault → LendingProtocol → downstream integrations</td><td><span class="badge badge-good">Near-term</span></td></tr>
+          <tr><td><strong>Compliance primitives</strong></td><td>EnforceTrustlineAuth, Token Pre-Auth, Confidential MPT viewer keys, DisallowIncomingCredential</td><td><span class="badge badge-warn">6–12 months</span></td></tr>
+          <tr><td><strong>UX primitives</strong></td><td>Sponsor, Subscriptions, Remit, MinIncomingAmount, FirstReserveExemption — historically under-prioritised, high adoption impact</td><td><span class="badge badge-warn">6–12 months</span></td></tr>
+          <tr><td><strong>AMM evolution</strong></td><td>CLAMM design unification, AMMv1_3 fixes, AMMClawback rounding</td><td><span class="badge badge-good">Near-term</span></td></tr>
+          <tr><td><strong>Process gates</strong></td><td>Spec-final-before-code-freeze · invariant-per-new-object · ballot bundling</td><td><span class="badge badge-accent">Continuous</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <div>
+      Sources:
+      <a href="https://github.com/XRPLF/rippled/blob/develop/include/xrpl/protocol/detail/features.macro">features.macro on develop</a> ·
+      <a href="https://github.com/XRPLF/rippled/pulls?q=is%3Apr+is%3Aopen">rippled open PRs</a> ·
+      <a href="https://github.com/XRPLF/XRPL-Standards">XRPL-Standards</a> ·
+      <a href="https://github.com/Transia-RnD/rippled/branches">Transia-RnD branches</a> ·
+      <a href="https://app.asana.com/1/1213991914804721/project/1214503361909646/task/1214503514145088">Asana A4</a>
+    </div>
+    <div style="margin-top: 6px;">A4 · Read and write technical debrief on all active amendment proposals · Feeds B4 / C4 · Due 2026-06-15</div>
+  </footer>
+</div>
+
+<script>
+// ======================= DATA =======================
+const REGISTERED = [
+  // Eligible for vote (Supported::Yes, DefaultNo)
+  {name:'LendingProtocol', kind:'feature', spec:'XLS-66d', state:'vote', stateLabel:'Eligible · vote', risk:'High', action:'block', actionLabel:'Block',
+    detail:`<p><strong>Spec status.</strong> Draft. Still seeing material changes via XRPL-Standards PRs #484, #494–#497, #538.</p>
+    <p><strong>Summary.</strong> Permissioned on-chain lending on top of SingleAssetVault. A LoanBroker pools depositor capital into a vault and issues fixed-term loans collateralised by first-loss capital. Supports impairment, management fees, permissioned-domain / credential gating.</p>
+    <p><strong>New transactions.</strong> LoanBrokerSet, LoanBrokerDelete, LoanSet, LoanDelete, LoanDraw, LoanPay, LoanManage.</p>
+    <p><strong>New ledger objects.</strong> LoanBroker, Loan, LoanBrokerCoverDeposit.</p>
+    <p><strong>Security &amp; invariants.</strong> Accounting-invariant heavy. Vault share pricing must remain monotonic under deposits/withdrawals/impairment. First-loss capital semantics (#494) and impairment math (#496) still iterating — wrong-direction rounding is directly exploitable. Equation (23) in #495 had a math bug. Recommend a dedicated invariant in InvariantCheck.cpp covering Vault ↔ LoanBroker ↔ borrower flows.</p>
+    <p><strong>Dependencies.</strong> Hard on SingleAssetVault. Soft on PermissionedDomains and Credentials.</p>
+    <p><strong>Recommendation.</strong> Do not begin Mainnet vote until (a) XLS-66 marked Final, (b) open spec PRs land and impl re-checked, (c) external economic / risk review published. Testnet/Devnet acceptable.</p>`},
+  {name:'SingleAssetVault', kind:'feature', spec:'XLS-65', state:'vote', stateLabel:'Eligible · vote', risk:'Med', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p><strong>Summary.</strong> General-purpose pooled-asset vault. Depositors mint vault-share MPTokens proportional to contribution; withdrawals burn shares. Owned by a pseudo-account (XLS-64). Building block for Lending, DEX strategies, structured products.</p>
+    <p><strong>New transactions.</strong> VaultSet, VaultDelete, VaultDeposit, VaultWithdraw, VaultClawback.</p>
+    <p><strong>New ledger objects.</strong> Vault (with embedded share-MPT issuance fields).</p>
+    <p><strong>Security &amp; invariants.</strong> Share pricing is the central invariant: <span class="mono">shares_out × NAV_per_share == assets_in</span> at all times. PR #485 revised share-pricing post-merge — re-validate impl against it. VaultClawback gating must match underlying asset's clawback authorization. VaultDepositBlock flag (#469) needs invariant coverage. Pseudo-account model — every transactor constructing an STTx with the vault's Account must be in a closed allowlist.</p>
+    <p><strong>Dependencies.</strong> MPTokensV1 (enabled). Should land at least one Mainnet round before LendingProtocol.</p>
+    <p><strong>Recommendation.</strong> Ready to vote sooner than Lending. Pair vote with changelog of post-merge fixes (#485 onwards).</p>`},
+  {name:'PermissionedDEX', kind:'feature', spec:'(XLS pending)', state:'vote', stateLabel:'Eligible · vote', risk:'Low–Med', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p><strong>Summary.</strong> Layers PermissionedDomains onto the central DEX so offers can be restricted to counterparties holding specific credentials. Order-book analogue to AMM permissioning.</p>
+    <p><strong>Changes.</strong> Extends OfferCreate with a DomainID field. No standalone new tx. Existing Offer ledger entry gains DomainID gated on this amendment.</p>
+    <p><strong>Security &amp; invariants.</strong> Path-finding must respect domain membership at consumption time. AMM auto-bridging interaction needs cross-check (credentials of taker, not offer creator). Offer expiry/cleanup when DomainID references a deleted PermissionedDomain.</p>
+    <p><strong>Open question.</strong> AMM interaction with AMMv1_3 — does an AMM offer get a DomainID? Document before vote.</p>
+    <p><strong>Recommendation.</strong> Ready. Confirm Clio surfaces DomainID in book_offers. Vote independently of Lending/Vault.</p>`},
+  {name:'TokenEscrow', kind:'feature', spec:'XLS-85d', state:'vote', stateLabel:'Eligible · vote', risk:'Med', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p><strong>Summary.</strong> Generalises XRP-only escrow to IOU and MPT amounts. fixTokenEscrowV1 patches post-merge defect. PR #7121 (fixTokenEscrowV1_1) further allows escrow flows for <strong>blackholed accounts</strong>.</p>
+    <p><strong>Security &amp; invariants.</strong> IOU escrow interacts with freeze — must reject EscrowFinish to a frozen line and handle issuer global-freeze. MPT escrow respects MPT issuance flags. Blackhole fix: review whether funds can be unrecoverably stranded under any edge.</p>
+    <p><strong>Recommendation.</strong> Vote TokenEscrow + fixTokenEscrowV1 together. Hold fixTokenEscrowV1_1 until #7121 merges.</p>`},
+  {name:'fixTokenEscrowV1', kind:'fix', spec:'XLS-85d', state:'vote', stateLabel:'Eligible · vote', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Companion fix to TokenEscrow. Patches a defect found post-merge. Vote alongside TokenEscrow.</p>`},
+  {name:'fixDirectoryLimit', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Caps directory page count to prevent unbounded-growth DoS on heavily-owned accounts. Confirm behaviour for accounts already above the new limit (rejection of new owns vs. grandfather).</p>`},
+  {name:'fixIncludeKeyletFields', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Includes keylet-derived fields in canonical serialisation. Watch for Clio/xrpl-py serialisation parity.</p>`},
+  {name:'fixPriceOracleOrder', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Canonicalises order of price entries in PriceData arrays. Pure determinism fix.</p>`},
+  {name:'fixMPTDeliveredAmount', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Ensures delivered_amount meta field is set correctly for MPT payments. Tooling-visible; confirm Clio surfaces.</p>`},
+  {name:'fixAMMClawbackRounding', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low–Med', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Rounding consistency when clawing back AMM-deposited tokens. Verify against unit tests.</p>`},
+  {name:'fixEnforceNFTokenTrustlineV2', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low–Med', action:'verify', actionLabel:'Verify',
+    detail:`<p>Second-pass on trustline-enforcement amendment. Read the V1 fix to understand what was missed.</p>`},
+  {name:'fixAMMv1_3', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Med', action:'verify', actionLabel:'Verify',
+    detail:`<p>Cumulative AMM math/edge fixes — third such amendment. AMM has historically had subtle invariant drift; verify regression suite.</p>`},
+  {name:'fixPayChanCancelAfter', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Fixes CancelAfter enforcement on a payment channel. Specific edge.</p>`},
+  {name:'fixInvalidTxFlags', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Stricter flag validation on Credential transactions. Read the comment in features.macro for the precise scope.</p>`},
+  {name:'fixFrozenLPTokenTransfer', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote', risk:'Low–Med', action:'verify', actionLabel:'Verify',
+    detail:`<p>Prevents transfer of LP tokens when underlying is frozen. Watch cross-effect with VaultClawback / LP scenarios.</p>`},
+  {name:'fixCleanup3_1_3', kind:'fix', spec:'—', state:'vote', stateLabel:'Eligible · vote (DefaultYes)', risk:'Low', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Removes pre-amendment code paths now that prior amendments are universally enabled. Default-yes per registry; defensive vote.</p>`},
+
+  // Placeholders Supported::No
+  {name:'Cleanup3_2_0', kind:'fix', spec:'—', state:'placeholder', stateLabel:'Placeholder · Supported::No', risk:'Low', action:'flag', actionLabel:'Flag',
+    detail:`<p>Companion to Cleanup3_1_3 — strips dead code paths from amendments expected to be universally enabled by the 3.2 release window. Pure refactor. Promote-to-vote criteria: all referenced amendments must have ≥6 months on Mainnet without revert pressure.</p>`},
+  {name:'MPTokensV2', kind:'feature', spec:'pending', state:'placeholder', stateLabel:'Placeholder · Supported::No', risk:'High', action:'flag', actionLabel:'Flag',
+    detail:`<p>Second-generation MPT semantics. Exact deltas not yet public. Coordinated with DynamicMPT. <strong>High risk</strong> — MPTokensV1 is foundational; a V2 changing serialisation, invariants, or transactor flow risks every MPT issuer / wallet / indexer needing to upgrade. Need public V2 spec before this can ship; explicit migration story for V1 issuances.</p>`},
+  {name:'BatchInnerSigs', kind:'fix', spec:'XLS-56', state:'placeholder', stateLabel:'Placeholder · Supported::No', risk:'Med', action:'flag', actionLabel:'Flag',
+    detail:`<p>Companion fix to Batch placeholder. Tightens signature handling on inner Batch transactions. Coupled to Batch / BatchV1_1 decision.</p>`},
+  {name:'PermissionDelegationV1_1', kind:'feature', spec:'XLS-75 follow-up', state:'placeholder', stateLabel:'Placeholder · Supported::No', risk:'Med', action:'flag', actionLabel:'Flag',
+    detail:`<p>v1.1 of permission delegation. Predecessor was renamed/removed in develop. Security-sensitive — preserves principle of least authority. Promote-to-vote: diff between V1 and V1.1 published; security review of delegated-tx permission matrix.</p>`},
+  {name:'DynamicMPT', kind:'feature', spec:'pending', state:'placeholder', stateLabel:'Placeholder · Supported::No', risk:'Med', action:'flag', actionLabel:'Flag',
+    detail:`<p>Mutable MPT metadata — issuers can update name/URI/flags on already-issued MPTs. Must define which fields are mutable, who can mutate, observability via event/meta. Backwards-compatibility plan needed for cached metadata.</p>`},
+  {name:'Batch', kind:'feature', spec:'XLS-56', state:'placeholder', stateLabel:'Placeholder · Supported::No (conflict with PR #6446)', risk:'High', action:'coordinate', actionLabel:'Coordinate',
+    detail:`<p>Atomic execution of multiple inner transactions. Open PR #6446 (BatchV1_1) <em>renames</em> this placeholder and adds defensive checks. <strong>Coordination risk</strong> — drop one before promoting the other to Supported::Yes; otherwise operators see two amendments for the same feature.</p>`},
+];
+
+const PRS = [
+  {pr:'#7121', title:'fixTokenEscrowV1_1 — Token Escrow for blackholed accounts', author:'dangell7', state:'ready', opened:'2026-02-26', cat:'confirmed', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Adds <span class="mono">XRPL_FIX(TokenEscrowV1_1, Supported::No, DefaultNo)</span>. Allows escrow flows for blackholed accounts (master disabled, no regular key). Necessary for issuer-side automated escrow patterns. <strong>Only in-flight upstream amendment that handles blackhole semantics.</strong> Approved by xrplf-ai-reviewer bot. Review edge: funds unrecoverably stranded under blackhole + frozen line — acceptable if intentional but should be explicit.</p>`},
+  {pr:'#6605', title:'featureCLAMM — Concentrated Liquidity AMM (XLS-99)', author:'RomThpt', state:'ready', opened:'2026-03-20', cat:'confirmed', action:'block', actionLabel:'Block',
+    detail:`<p>Adds <span class="mono">XRPL_FEATURE(CLAMM, Supported::yes, DefaultNo)</span>. New CLAMMPosition (0x008C) ledger object, NFToken-backed LP positions, payment-engine integration. <strong>Block:</strong> competing PR #5697 + XRPL-Standards PR #498 (no XLS number) — two designs, two authors. Convene CLAMM design council first.</p>`},
+  {pr:'#6446', title:'BatchV1_1 — XLS-56 follow-up', author:'dangell7', state:'ready', opened:'2026-02-26', cat:'confirmed', action:'coordinate', actionLabel:'Coordinate',
+    detail:`<p>Adds <span class="mono">XRPL_FEATURE(BatchV1_1, Supported::No, DefaultNo)</span>. Renames featureBatch → featureBatchV1_1, adds defensive checks and BatchInnerSig handling. <strong>Needs:</strong> coordination decision — drop the develop placeholder Batch or version cleanly. Avoid two identifiers visible to operators.</p>`},
+  {pr:'#6368', title:'NestedMultiSign', author:'RichardAH', state:'ready', opened:'2026-02-13', cat:'confirmed', action:'flag', actionLabel:'Flag',
+    detail:`<p>Adds <span class="mono">XRPL_FEATURE(NestedMultiSign, Supported::yes, DefaultNo)</span>. Recursive SignerList entries up to depth 4, max 64 leaf signers. <strong>Needs:</strong> XLS number assigned (currently XRPL-Standards PR #471 candidate); independent cryptographic review of recursion bound; fee escalation well-defined per-leaf-signature.</p>`},
+  {pr:'#6329', title:'Smart Escrows (XLS-100)', author:'mvadari', state:'ready', opened:'2026-02-04', cat:'confirmed', action:'coordinate', actionLabel:'Coordinate',
+    detail:`<p>Extends Escrow with WASM-evaluated FinishFunction. New errors: tecWASM_REJECTED, tefNO_WASM, temBAD_WASM. <strong>First WASM execution introduced into the ledger.</strong> Companion PR #6075 adds Wasmi runtime. Determinism, gas/limit bounds (XRPL-Standards PR #532), sandbox isolation are all dependencies. <strong>Long horizon:</strong> XLS-102 must be final; Devnet ≥3 months; external security review of WASM sandbox required.</p>`},
+  {pr:'#7029', title:'fixConstantInvariant', author:'mvadari', state:'ready', opened:'2026-02-23', cat:'confirmed', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>Adds <span class="mono">XRPL_FIX(ConstantInvariant, Supported::No, DefaultNo)</span>. Ledger-modification invariant ensuring only fields explicitly declared mutable are mutated. <strong>Should land before Smart Escrows</strong> — defence-in-depth that catches a class of WASM sandbox-escape that is otherwise subtle. Confirm test coverage exercises every transactor's mutated-field set.</p>`},
+  {pr:'#5577', title:'fixEnforceTrustlineAuth', author:'shawnxie999', state:'draft', opened:'2025-07-17', cat:'confirmed', action:'takeover', actionLabel:'Take over',
+    detail:`<p>Adds <span class="mono">XRPL_FIX(EnforceTrustlineAuth, Supported::no, DefaultNo)</span>. Prohibits transferring authorized-only IOUs to unauthorized trust lines. <strong>Compliance-relevant</strong> — stablecoin issuers using RequireAuth rely on this. Should be invariant-protected, not just transactor-protected. Long-open draft; needs owner re-engagement.</p>`},
+  {pr:'#5448', title:'TokenPaychan — XLS-93d', author:'dangell7', state:'ready', opened:'2025-05-24', cat:'confirmed', action:'monitor', actionLabel:'Monitor',
+    detail:`<p>Adds <span class="mono">XRPL_FEATURE(TokenPaychan, Supported::Yes, DefaultNo)</span>. Generalises PayChan to support IOU/MPT amounts. Marked breaking. <strong>Security:</strong> IOU paychan interacts with freeze, trustline authorisation, issuer transfer rate — must be enforced at claim time, not channel-create. Sequence behind TokenEscrow (same interaction surface, simpler version). XLS-93 spec PR #536 still in flux.</p>`},
+  {pr:'#5887', title:'XLS-68 Sponsor — Sponsored Fees &amp; Reserves', author:'tequdev', state:'draft', opened:'2025-10-14', cat:'confirmed', action:'takeover', actionLabel:'Take over',
+    detail:`<p>One account pays fee/reserve for another's tx. Removes cold-start UX problem. <strong>Security:</strong> sponsor must sign their consent — replay-protected. Reserve sponsorship needs explicit return semantics (sponsor vs sponsoree on object delete). Draft since late 2025 — re-prioritise; high user value, well-scoped.</p>`},
+  {pr:'#5809', title:'XLS-101d Smart Contracts', author:'dangell7', state:'draft', opened:'2025-09-22', cat:'confirmed', action:'monitor', actionLabel:'Monitor',
+    detail:`<p>Generalises XLS-100 into first-class on-ledger smart contracts. WASM modules deployed as ledger objects, callable by transactions. <strong>Long horizon — 12+ months minimum.</strong> Should not vote until XLS-100 has ≥6 months on Mainnet without incident; host-function ABI frozen ≥3 months; external audit of WASM sandbox.</p>`},
+  {pr:'#5704', title:'DisallowIncomingCredential', author:'tequdev', state:'draft', opened:'2025-08-20', cat:'confirmed', action:'verify', actionLabel:'Verify',
+    detail:`<p>Account flag blocking incoming CredentialCreate where account is Subject. Symmetric with existing DisallowIncoming* flags. Low-risk.</p>`},
+  {pr:'#5697', title:'Concentrated liquidity AMM (alt design)', author:'LJ-XRPL', state:'draft', opened:'2025-08-17', cat:'confirmed', action:'block', actionLabel:'Block',
+    detail:`<p>Alternative CLAMM proposal competing with #6605. Includes spec in-tree. <strong>Block until design council unifies.</strong></p>`},
+  {pr:'#5860', title:'Confidential Transfer for MPT (XLS-96)', author:'shawnxie999', state:'ready', opened:'2025-10-07', cat:'confirmed', action:'block', actionLabel:'Block',
+    detail:`<p>Privacy-preserving MPTokens via Pedersen commitments + range proofs. New transactors: ConfidentialSend, ConfidentialConvert, ConfidentialClawback. <strong>First cryptographic primitives in core rippled</strong> — determinism, verification cost, trusted setup all need explicit treatment. Issuer clawback under hidden amounts; viewer-key / selective-disclosure for compliance. <strong>Demands independent cryptographic review before validator vote.</strong></p>`},
+  {pr:'#6113', title:'Frozen IOU issuer-transfer', author:'vlntb', state:'draft', opened:'2025-12-05', cat:'confirmed', action:'verify', actionLabel:'Verify',
+    detail:`<p>Frozen IOUs should remain transferable to/from issuer (rebalance/redeem). Branch suggests fixFrozenIssuer-style amendment. Low scope; narrows freeze invariant asymmetrically.</p>`},
+  {pr:'#6075', title:'WASM host functions (Wasmi)', author:'mvadari', state:'ready', opened:'2025-11-24', cat:'confirmed', action:'coordinate', actionLabel:'Coordinate',
+    detail:`<p>Wasmi runtime integration + XLS-102 host functions. Companion to Smart Escrows / Smart Contracts rather than a standalone amendment.</p>`},
+  {pr:'#4847', title:'XLS-42d Plugins', author:'mvadari', state:'draft', opened:'2023-12-06', cat:'confirmed', action:'archive', actionLabel:'Archive',
+    detail:`<p>Dynamically loadable rippled extensions. Stagnant since 2023. Largely superseded by WASM direction (XLS-100/101). Recommend formal close.</p>`},
+  // Late-pass additions
+  {pr:'#5012', title:'fixAMMMetadata — missing XRP Asset metadata', author:'shawnxie999', state:'ready', opened:'2024-05-02', cat:'confirmed', action:'sponsor', actionLabel:'Sponsor',
+    detail:`<p>PR body cites <em>"a new amendment fixAMMMetadata fixes this problem."</em> Asset field omitted from AMM NewFields entry when one side is XRP. Older PR but still open, Amendment-labelled.</p>`},
+  {pr:'#5867', title:'Trustline owner-count fix (positive balance)', author:'vvysokikh1', state:'ready', opened:'2025-10-08', cat:'confirmed', action:'verify', actionLabel:'Verify',
+    detail:`<p>rippleCreditIOU only decremented owner counts on positive→zero/negative but never incremented going positive. Owner-reserve accounting correctness. Amendment-gated.</p>`},
+  {pr:'#6307', title:'asfDisallowIncomingTrustline on OfferCreate', author:'Copilot (mvadari)', state:'ready', opened:'2026-01-30', cat:'confirmed', action:'verify', actionLabel:'Verify',
+    detail:`<p>Enforces asfDisallowIncomingTrustline flag in OfferCreate transactions. Currently the flag is bypassed when cross-offer execution auto-creates a trustline. Closes the loophole.</p>`},
+  {pr:'#6405', title:'fix! update error codes (breaking)', author:'mvadari', state:'draft', opened:'2026-02-20', cat:'confirmed', action:'verify', actionLabel:'Verify',
+    detail:`<p>Wholesale cleanup of transactor error codes across many transactors. Marked breaking (fix!) — amendment-gated. Affects API consumers reading preflight tem* codes.</p>`},
+  // Likely-amendment (need gating confirmation)
+  {pr:'#7285', title:'Strengthen Clawback invariant for MPT balances', author:'gregtatcam', state:'ready', opened:'2026-05-17', cat:'likely', action:'verify', actionLabel:'Verify',
+    detail:`<p>Renames ValidMPTPayment → ValidMPTBalanceChanges. Extends ValidClawback to validate before/after IOU + MPT holder balance changes. Companion to fixConstantInvariant. <strong>Likely amendment</strong> — confirm gating.</p>`},
+  {pr:'#7299', title:'Audit/attackathon report fixes (bundle)', author:'gregtatcam', state:'ready', opened:'recent', cat:'likely', action:'verify', actionLabel:'Verify',
+    detail:`<p>MPT transfer-rate rounding overflow in STAmount; AMM offer generation for integral MPT pairs; zero-input MPT offer fills after clipping; MPT creation deferral. Bundle. <strong>Likely behind a new fix amendment</strong> (fixAttackathon or fixMPTokenV1_X).</p>`},
+  {pr:'#7272', title:'Fix VaultInvariant and VaultDeposit precision', author:'(core)', state:'ready', opened:'recent', cat:'likely', action:'verify', actionLabel:'Verify',
+    detail:`<p>Precision bugs at IOU scale boundaries inside SingleAssetVault. Confirm amendment-gating.</p>`},
+  {pr:'#7295', title:'Improve ValidAMM invariant', author:'(core)', state:'ready', opened:'recent', cat:'likely', action:'verify', actionLabel:'Verify',
+    detail:`<p>AMM invariant tightening. Confirm amendment-gating.</p>`},
+  {pr:'#6736', title:'ValidPermissionedDEX invariant for consumed offer', author:'(core)', state:'ready', opened:'recent', cat:'likely', action:'verify', actionLabel:'Verify',
+    detail:`<p>Adds invariant track for fully-consumed offer in Permissioned DEX. PermissionedDEX dependency.</p>`},
+  {pr:'#6853', title:'AMM quality leak into Domain BookStep (PDEX)', author:'(core)', state:'ready', opened:'recent', cat:'likely', action:'verify', actionLabel:'Verify',
+    detail:`<p>AMM/PDEX cross-effect bug. Confirm amendment-gating.</p>`},
+];
+
+const FORKS = [
+  {fork:'Transia-RnD', branch:'dangell/smart-contracts', amend:'SmartContract', sup:'yes', supLabel:'yes', theme:'WASM smart contracts', cat:'transia',
+    detail:`<p>XLS-100/101 WASM VM umbrella flag. Host-function plumbing for on-ledger WASM execution. mvadari shepherds a PR-ready mirror in <span class="mono">mvadari/rippled@dangell/smart-contracts-pr</span>.</p>`},
+  {fork:'Transia-RnD', branch:'dangell/smart-contracts', amend:'SmartEscrow', sup:'no', supLabel:'no', theme:'WASM smart contracts', cat:'transia',
+    detail:`<p>Placeholder for XLS-100 WASM-escrow finish-condition amendment. Registered, not voting-enabled.</p>`},
+  {fork:'Transia-RnD', branch:'dangell/smart-contracts', amend:'InvariantsV1_1', sup:'no', supLabel:'no', theme:'Invariants', cat:'transia',
+    detail:`<p>Placeholder for invariant-check framework bump — additional invariants for new ledger objects from smart-contract work.</p>`},
+  {fork:'Transia-RnD', branch:'alphanet-develop', amend:'Quantum', sup:'yes', supLabel:'yes', theme:'Post-quantum signing', cat:'transia',
+    detail:`<p>Post-quantum signature support — likely CRYSTALS-Dilithium (sibling branch dilithium-full). New SignerType/KeyType for quantum-resistant signing. <strong>No upstream PR yet.</strong> Large surface area — needs XLS spec before review.</p>`},
+  {fork:'Transia-RnD', branch:'feature-p256 / options-sidechain', amend:'Passkey', sup:'yes', supLabel:'yes', theme:'WebAuthn / P-256', cat:'transia',
+    detail:`<p>secp256r1 (P-256) KeyType — WebAuthn / hardware-authenticator signing. <strong>No upstream PR yet.</strong> Needs XLS spec before review.</p>`},
+  {fork:'Transia-RnD', branch:'options / options-sidechain', amend:'Options', sup:'yes', supLabel:'yes', theme:'Derivatives (XLS-62)', cat:'transia',
+    detail:`<p>XLS-62 on-ledger options/derivatives (settlement, strike, expiry). New ledger object + transactions. <strong>Long-running design, never PR'd upstream.</strong> Raise at Protocol Priorities — mainnet vs sidechain decision.</p>`},
+  {fork:'Transia-RnD', branch:'options-sidechain', amend:'ImportExport', sup:'yes', supLabel:'yes', theme:'Cross-chain', cat:'transia',
+    detail:`<p>Burn-on-A / mint-on-B cross-chain primitive distinct from XChainBridge. Long-running, no upstream PR.</p>`},
+  {fork:'Transia-RnD', branch:'firewall-v3', amend:'Firewall', sup:'yes', supLabel:'yes', theme:'XLS-86 Firewall', cat:'transia',
+    detail:`<p>XLS-86 account firewall — per-account outbound allowlist enforced at protocol level. New Firewall ledger object + FirewallSet tx. <strong>v3 is voting-enabled.</strong> Best candidate for an upstream PR among Firewall variants.</p>`},
+  {fork:'Transia-RnD', branch:'firewall / firewall-otp / firewall-dnd-backup', amend:'Firewall', sup:'mixed', supLabel:'yes/no', theme:'XLS-86 Firewall', cat:'transia',
+    detail:`<p>Variants of the Firewall amendment across four branches. firewall-otp additionally carries DelegateV1_1 (predecessor of PermissionDelegationV1_1).</p>`},
+  {fork:'Transia-RnD', branch:'alphanet / token-paychan', amend:'TokenPaychan', sup:'yes', supLabel:'yes', theme:'XLS-93 Token PayChan', cat:'transia',
+    detail:`<p>XLS-93 PayChan for IOU/MPT tokens. Matches Denis's open PR #5448. <strong>Fork implementation is more mature than the PR suggests.</strong> token-paychan branch also carries Cleanup3_1_3 + Cleanup3_2_0.</p>`},
+  {fork:'Transia-RnD', branch:'alphanet', amend:'Security3_1_3', sup:'no', supLabel:'no', theme:'Cleanup placeholder', cat:'transia',
+    detail:`<p>Placeholder grouping for security fixes targeted at a 3.1.3-line release. Mirrors Cleanup3_x_x pattern.</p>`},
+  {fork:'Transia-RnD', branch:'batch-db', amend:'Batch', sup:'yes', supLabel:'yes (policy delta)', theme:'XLS-56 Batch', cat:'transia',
+    detail:`<p>Same Batch identifier as upstream develop, flipped to Supported::yes (develop keeps it No pending review). <strong>Policy delta, not a new amendment.</strong></p>`},
+  {fork:'RichardAH', branch:'nested-multi-sign-rippled', amend:'NestedMultiSign', sup:'yes', supLabel:'yes', theme:'Multi-sign', cat:'other',
+    detail:`<p>Nested multi-sign — SignerListEntry can be a multi-sign account itself (transitive signing). Corresponds to upstream PR #6368.</p>`},
+  {fork:'mvadari', branch:'dangell/smart-contracts-pr', amend:'SmartContract / SmartEscrow', sup:'no', supLabel:'no', theme:'WASM smart contracts', cat:'other',
+    detail:`<p>PR-ready mirror of Transia's SmartContract/SmartEscrow placeholders. Kept Supported::no for the PR landing. mvadari shepherds the upstream merge.</p>`},
+  // Multi-fork corroboration
+  {fork:'8+ branches (Transia, RichardAH, mvadari, gregtatcam)', branch:'multi', amend:'PermissionedDomainInvariant', sup:'yes', supLabel:'yes', theme:'Invariants', cat:'multi',
+    detail:`<p>New invariant enforcing PermissionedDomain reference integrity (forbids deletion of a Domain still referenced by Vault / LoanBroker / MPTokenIssuance). <strong>Multi-fork corroboration — strong upstream-PR candidate.</strong></p>`},
+  {fork:'8+ branches (Transia, RichardAH, mvadari, gregtatcam)', branch:'multi', amend:'ExpiredNFTokenOfferRemoval', sup:'yes', supLabel:'yes', theme:'Housekeeping', cat:'multi',
+    detail:`<p>Auto-removes expired NFTokenOffer ledger entries. Parallels EmptyDID / RemoveNFTokenAutoTrustLine. <strong>Multi-fork corroboration — strong upstream-PR candidate.</strong></p>`},
+];
+
+const XLS = [
+  {xls:'XLS-62d', title:'Options', author:'Denis Angell (XRPL-Labs)', theme:'derivatives', state:'Draft · stateCat:draft', stateCat:'draft', themeCat:'ux', action:'monitor',
+    detail:`<p>Native on-ledger options (calls/puts) with collateralised offers and exercise. Tx: OptionCreate, OptionCancel, OptionExercise. Objects: Option, OptionOffer. Implementation lives only in Transia <span class="mono">options</span>/<span class="mono">options-sidechain</span> branches.</p>`},
+  {xls:'XLS-74d', title:'Account Permissions', author:'Shawn Xie, Mayukha Vadari', theme:'access', state:'Draft', stateCat:'draft', themeCat:'compliance', action:'monitor',
+    detail:`<p>Granular per-tx-type permissions an account can grant another. Generalisation of PermissionDelegation. Foundation for delegated transactor patterns. New ledger object: AccountPermissions; new tx: AccountPermissionSet.</p>`},
+  {xls:'XLS-76d', title:'Min Incoming Amount', author:'community', theme:'anti-spam', state:'Draft', stateCat:'draft', themeCat:'ux', action:'monitor',
+    detail:`<p>Account flag rejecting payments below configurable minimum. Anti-dust / anti-spam. AccountSet field MinIncomingAmount; AccountRoot flag.</p>`},
+  {xls:'XLS-78d', title:'Subscriptions', author:'Denis Angell (XRPL-Labs)', theme:'recurring', state:'Draft', stateCat:'draft', themeCat:'ux', action:'monitor',
+    detail:`<p>Recurring on-ledger payments authorised once, executed periodically. Tx: SubscriptionSet, SubscriptionCancel, SubscriptionClaim. Object: Subscription. Major UX primitive for SaaS-style flows.</p>`},
+  {xls:'XLS-82d', title:'MPT DEX', author:'Ripple tokens team', theme:'MPT', state:'Draft', stateCat:'draft', themeCat:'mpt', action:'monitor',
+    detail:`<p>Allows MPTokens to be traded on native DEX/AMM (currently only IOUs + XRP can be). Extends Offer, AMM, payment engine to accept MPT amounts. Closes major MPT gap. Coupled with MPTokensV2.</p>`},
+  {xls:'XLS-86d', title:'Firewall', author:'Richard Holland (Xahau-origin)', theme:'security', state:'Draft', stateCat:'draft', themeCat:'compliance', action:'monitor',
+    detail:`<p>Per-account allow/deny rules on outgoing transactions (rate limits, destination allow-list, daily caps). Tx: FirewallSet. Object: Firewall. Xahau-origin; XRPL port pending. Implementation in Transia fork branches.</p>`},
+  {xls:'XLS-87d', title:'Token Pre-Authorisation', author:'Shawn Xie (Ripple)', theme:'compliance', state:'Draft', stateCat:'draft', themeCat:'compliance', action:'monitor',
+    detail:`<p>Issuer pre-authorises holder for a trustline BEFORE holder creates it. Required for permissioned/whitelisted issuance under DeepFreeze model. Likely bundled with future DeepFreeze follow-ups.</p>`},
+  {xls:'XLS-90d', title:'PermissionedDomain for MPT', author:'community', theme:'MPT', state:'Draft (PR #273)', stateCat:'draft', themeCat:'mpt', action:'monitor',
+    detail:`<p>Domain-credential-gated MPT transfers. Layers PermissionedDomains onto MPTokens. Compliance for institutional MPT.</p>`},
+  {xls:'XLS-96d', title:'Confidential MPT', author:'Aanchal Malhotra, Mayukha Vadari (Ripple)', theme:'privacy', state:'Draft', stateCat:'draft', themeCat:'mpt', action:'monitor',
+    detail:`<p>Privacy-preserving MPTokens via Pedersen commitments / range proofs. Issuer controls preserved. rippled impl in PR #5860.</p>`},
+  {xls:'XLS-99d', title:'Concentrated Liquidity AMM (CLAMM)', author:'RomThpt / community', theme:'AMM', state:'Draft (competing designs)', stateCat:'draft', themeCat:'ux', action:'coordinate',
+    detail:`<p>Uniswap-v3-style concentrated liquidity. New CLAMMPosition (0x008C). NFToken-backed LP positions. <strong>Two competing implementations</strong> (PR #6605 + PR #5697) + XRPL-Standards PR #498 without an XLS number. Design unification required.</p>`},
+  {xls:'XLS-100d', title:'Smart Escrows', author:'Mayukha Vadari, Ed Hennis, Tequ', theme:'WASM', state:'Draft (impl PR #6329)', stateCat:'draft', themeCat:'compliance', action:'monitor',
+    detail:`<p>WASM-evaluated FinishFunction on Escrow. Prerequisite to XLS-101. Devnet implementation in PR #6329.</p>`},
+  {xls:'XLS-101d', title:'Smart Contracts', author:'Mayukha Vadari et al.', theme:'WASM', state:'Draft (impl PR #5809)', stateCat:'draft', themeCat:'compliance', action:'monitor',
+    detail:`<p>Generalises XLS-100 into first-class smart contracts. Devnet-only.</p>`},
+  {xls:'XLS-102d', title:'WASM VM', author:'Mayukha Vadari, Ed Hennis', theme:'WASM', state:'Draft (open PRs #504, #531, #532)', stateCat:'draft', themeCat:'compliance', action:'monitor',
+    detail:`<p>WebAssembly execution environment, host-function ABI, gas/limits, versioning. Infrastructure spec. Hard dependency for XLS-100/101. Active PRs on limits, float host functions, host-function renames.</p>`},
+  {xls:'XLS-51d', title:'NFToken Escrow', author:'community', theme:'NFT', state:'Draft', stateCat:'draft', themeCat:'ux', action:'monitor',
+    detail:`<p>Time/conditional escrow flows for NFTs. Tx: NFTokenEscrowCreate, NFTokenEscrowFinish, NFTokenEscrowCancel. Object: NFTokenEscrow. Narrow use case.</p>`},
+  {xls:'XLS-55d', title:'Remit', author:'Richard Holland', theme:'UX', state:'Draft (XRPL port pending)', stateCat:'draft', themeCat:'ux', action:'monitor',
+    detail:`<p>"Push payment" tx creating destination account, sending multiple assets atomically, attaching Memos/URIs. Live on Xahau; XRPL port pending.</p>`},
+  {xls:'XLS-71d', title:'Initial Owner Reserve Exemption', author:'community', theme:'UX', state:'Draft', stateCat:'draft', themeCat:'ux', action:'monitor',
+    detail:`<p>Waives first N owner-reserve increments for new accounts. Reduces onboarding friction. Protocol parameter / AccountRoot flag.</p>`},
+  {xls:'XLS-23d / 34d / 42d / 49d', title:'Lite Accounts / Token Paychan+Escrow / Plugins / Multi-SignerLists', author:'various', theme:'mixed', state:'Stagnant', stateCat:'stagnant', themeCat:'ux', action:'archive',
+    detail:`<p>Stagnant or superseded specs. XLS-42 Plugins superseded by WASM direction (XLS-100/101). XLS-34 partly subsumed by XLS-85 (TokenEscrow) and XLS-93 (Token PayChan). Track for retire/close decision.</p>`},
+];
+
+// ======================= RENDER =======================
+function renderRegistered() {
+  const tb = document.getElementById('tb-reg');
+  tb.innerHTML = '';
+  REGISTERED.forEach((row, i) => {
+    const stateBadge = row.state === 'vote' ? 'badge-accent' : row.state === 'placeholder' ? 'badge-warn' : 'badge-neutral';
+    const kindBadge = row.kind === 'feature' ? 'badge-info' : 'badge-neutral';
+    const riskBadge = row.risk.startsWith('High') ? 'badge-bad' : row.risk.startsWith('Med') ? 'badge-warn' : 'badge-good';
+    const tr = document.createElement('tr');
+    tr.className = 'main-row';
+    tr.dataset.kind = row.kind;
+    tr.dataset.state = row.state;
+    tr.dataset.search = (row.name + ' ' + row.spec + ' ' + row.kind + ' ' + row.state).toLowerCase();
+    tr.innerHTML = `
+      <td><span class="amend-name">${row.name}</span></td>
+      <td><span class="badge ${kindBadge}">${row.kind}</span></td>
+      <td class="hide-mobile">${row.spec === '—' ? '<span class="muted">—</span>' : row.spec}</td>
+      <td><span class="badge ${stateBadge}">${row.stateLabel}</span></td>
+      <td class="hide-mobile"><span class="badge ${riskBadge}">${row.risk}</span></td>
+      <td><span class="action act-${row.action}">${row.actionLabel}</span></td>
+    `;
+    tb.appendChild(tr);
+    const dt = document.createElement('tr');
+    dt.className = 'detail-row';
+    dt.style.display = 'none';
+    dt.innerHTML = `<td colspan="6">${row.detail}</td>`;
+    tb.appendChild(dt);
+    tr.addEventListener('click', () => dt.style.display = (dt.style.display === 'none' ? 'table-row' : 'none'));
+  });
+}
+
+function renderPRs() {
+  const tb = document.getElementById('tb-prs');
+  tb.innerHTML = '';
+  PRS.forEach(row => {
+    const stateBadge = row.state === 'ready' ? 'badge-good' : 'badge-warn';
+    const catBadge = row.cat === 'confirmed' ? 'badge-accent' : 'badge-warn';
+    const tr = document.createElement('tr');
+    tr.className = 'main-row';
+    tr.dataset.state = row.state;
+    tr.dataset.cat = row.cat;
+    tr.dataset.search = (row.pr + ' ' + row.title + ' ' + row.author).toLowerCase();
+    tr.innerHTML = `
+      <td><a href="https://github.com/XRPLF/rippled/pull/${row.pr.replace('#','')}" class="amend-name" onclick="event.stopPropagation()">${row.pr}</a></td>
+      <td>${row.title} <span class="badge ${catBadge}" style="margin-left:6px;">${row.cat === 'confirmed' ? 'Confirmed' : 'Likely'}</span></td>
+      <td class="hide-mobile">${row.author}</td>
+      <td><span class="badge ${stateBadge}">${row.state === 'ready' ? 'Ready' : 'Draft'}</span></td>
+      <td class="hide-mobile"><span class="muted">${row.opened}</span></td>
+      <td><span class="action act-${row.action}">${row.actionLabel}</span></td>
+    `;
+    tb.appendChild(tr);
+    const dt = document.createElement('tr');
+    dt.className = 'detail-row';
+    dt.style.display = 'none';
+    dt.innerHTML = `<td colspan="6">${row.detail}</td>`;
+    tb.appendChild(dt);
+    tr.addEventListener('click', (e) => { if (e.target.tagName !== 'A') dt.style.display = (dt.style.display === 'none' ? 'table-row' : 'none'); });
+  });
+}
+
+function renderForks() {
+  const tb = document.getElementById('tb-fork');
+  tb.innerHTML = '';
+  FORKS.forEach(row => {
+    const supBadge = row.sup === 'yes' ? 'badge-good' : row.sup === 'no' ? 'badge-warn' : 'badge-info';
+    const action = row.cat === 'multi' ? 'takeover' : row.sup === 'yes' ? 'coordinate' : 'monitor';
+    const actionLabel = row.cat === 'multi' ? 'Take over' : row.sup === 'yes' ? 'Coordinate' : 'Monitor';
+    const tr = document.createElement('tr');
+    tr.className = 'main-row';
+    tr.dataset.cat = row.cat;
+    tr.dataset.sup = row.sup;
+    tr.dataset.search = (row.fork + ' ' + row.branch + ' ' + row.amend + ' ' + row.theme).toLowerCase();
+    tr.innerHTML = `
+      <td><strong>${row.fork}</strong><div class="muted mono" style="font-size:11px;">${row.branch}</div></td>
+      <td><span class="amend-name">${row.amend}</span></td>
+      <td class="hide-mobile"><span class="badge ${supBadge}">${row.supLabel}</span></td>
+      <td>${row.theme}</td>
+      <td><span class="action act-${action}">${actionLabel}</span></td>
+    `;
+    tb.appendChild(tr);
+    const dt = document.createElement('tr');
+    dt.className = 'detail-row';
+    dt.style.display = 'none';
+    dt.innerHTML = `<td colspan="5">${row.detail}</td>`;
+    tb.appendChild(dt);
+    tr.addEventListener('click', () => dt.style.display = (dt.style.display === 'none' ? 'table-row' : 'none'));
+  });
+}
+
+function renderXLS() {
+  const tb = document.getElementById('tb-xls');
+  tb.innerHTML = '';
+  XLS.forEach(row => {
+    const stateBadge = row.stateCat === 'draft' ? 'badge-info' : 'badge-neutral';
+    const tr = document.createElement('tr');
+    tr.className = 'main-row';
+    tr.dataset.state = row.stateCat;
+    tr.dataset.theme = row.themeCat;
+    tr.dataset.search = (row.xls + ' ' + row.title + ' ' + row.author + ' ' + row.theme).toLowerCase();
+    tr.innerHTML = `
+      <td><span class="amend-name">${row.xls}</span></td>
+      <td><strong>${row.title}</strong><div class="muted" style="font-size:12px;">${row.author}</div></td>
+      <td class="hide-mobile">${row.theme}</td>
+      <td class="hide-mobile"><span class="badge ${stateBadge}">${row.state}</span></td>
+      <td><span class="action act-${row.action}">${row.action.charAt(0).toUpperCase() + row.action.slice(1)}</span></td>
+    `;
+    tb.appendChild(tr);
+    const dt = document.createElement('tr');
+    dt.className = 'detail-row';
+    dt.style.display = 'none';
+    dt.innerHTML = `<td colspan="5">${row.detail}</td>`;
+    tb.appendChild(dt);
+    tr.addEventListener('click', () => dt.style.display = (dt.style.display === 'none' ? 'table-row' : 'none'));
+  });
+}
+
+renderRegistered();
+renderPRs();
+renderForks();
+renderXLS();
+
+// ======================= TABS =======================
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.sec').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('sec-' + t.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// ======================= SEARCH / FILTER =======================
+function applyFilter(tableId, search, filter) {
+  const tb = document.getElementById(tableId);
+  if (!tb) return;
+  const rows = tb.querySelectorAll('tr.main-row');
+  rows.forEach(r => {
+    const det = r.nextElementSibling;
+    const matchSearch = !search || r.dataset.search.includes(search.toLowerCase());
+    let matchFilter = true;
+    if (filter && filter !== 'all') {
+      if (tableId === 't-reg') {
+        if (filter === 'feature') matchFilter = r.dataset.kind === 'feature';
+        else if (filter === 'fix') matchFilter = r.dataset.kind === 'fix';
+        else if (filter === 'placeholder') matchFilter = r.dataset.state === 'placeholder';
+        else if (filter === 'vote') matchFilter = r.dataset.state === 'vote';
+      } else if (tableId === 't-prs') {
+        if (filter === 'ready') matchFilter = r.dataset.state === 'ready';
+        else if (filter === 'draft') matchFilter = r.dataset.state === 'draft';
+        else if (filter === 'confirmed') matchFilter = r.dataset.cat === 'confirmed';
+        else if (filter === 'likely') matchFilter = r.dataset.cat === 'likely';
+      } else if (tableId === 't-fork') {
+        if (filter === 'transia') matchFilter = r.dataset.cat === 'transia';
+        else if (filter === 'other') matchFilter = r.dataset.cat === 'other';
+        else if (filter === 'supyes') matchFilter = r.dataset.sup === 'yes';
+        else if (filter === 'multi') matchFilter = r.dataset.cat === 'multi';
+      } else if (tableId === 't-xls') {
+        if (filter === 'draft') matchFilter = r.dataset.state === 'draft';
+        else if (filter === 'stagnant') matchFilter = r.dataset.state === 'stagnant';
+        else matchFilter = r.dataset.theme === filter;
+      }
+    }
+    const show = matchSearch && matchFilter;
+    r.style.display = show ? '' : 'none';
+    if (det && det.classList.contains('detail-row')) det.style.display = 'none';
+  });
+}
+
+document.querySelectorAll('.search').forEach(s => {
+  s.addEventListener('input', () => {
+    const target = s.dataset.target;
+    const activeChip = document.querySelector(`.chips[data-target="${target}"] .fchip.active`);
+    applyFilter(target, s.value, activeChip ? activeChip.dataset.filter : 'all');
+  });
+});
+
+document.querySelectorAll('.chips').forEach(box => {
+  box.querySelectorAll('.fchip').forEach(c => {
+    c.addEventListener('click', () => {
+      box.querySelectorAll('.fchip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      const target = box.dataset.target;
+      const search = document.querySelector(`.search[data-target="${target}"]`);
+      applyFilter(target, search ? search.value : '', c.dataset.filter);
+    });
+  });
+});
+
+// ======================= SORT =======================
+document.querySelectorAll('th.sortable').forEach(th => {
+  let asc = true;
+  th.addEventListener('click', () => {
+    const table = th.closest('table');
+    const tb = table.querySelector('tbody');
+    const key = th.dataset.key;
+    const idx = Array.from(th.parentNode.children).indexOf(th);
+    const rows = Array.from(tb.querySelectorAll('tr.main-row'));
+    rows.sort((a, b) => {
+      const av = a.children[idx].innerText.trim();
+      const bv = b.children[idx].innerText.trim();
+      return asc ? av.localeCompare(bv, undefined, { numeric: true }) : bv.localeCompare(av, undefined, { numeric: true });
+    });
+    table.querySelectorAll('th.sortable .arrow').forEach(a => a.textContent = '↕');
+    th.querySelector('.arrow').textContent = asc ? '▲' : '▼';
+    asc = !asc;
+    rows.forEach(r => {
+      const det = r.nextElementSibling;
+      tb.appendChild(r);
+      if (det && det.classList.contains('detail-row')) tb.appendChild(det);
+    });
+  });
+});
+</script>
+</body>
+</html>
