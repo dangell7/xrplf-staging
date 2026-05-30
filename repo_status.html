@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A3 — XRPLF Repository Overview</title>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg-alt: #0f1424;
+  --card: #141a2b;
+  --card-hover: #1a2238;
+  --border: #1f2940;
+  --border-strong: #2a3656;
+  --text: #e6edf6;
+  --text-dim: #8b95a8;
+  --text-faint: #5d6679;
+  --accent: #38bdf8;
+  --accent-dim: #0ea5e9;
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --info: #818cf8;
+  --shadow: 0 10px 40px -10px rgba(0,0,0,0.6);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text);
+  background: radial-gradient(ellipse at top, #131a2e 0%, var(--bg) 50%) fixed;
+  min-height: 100vh;
+}
+.wrap { max-width: 1440px; margin: 0 auto; padding: 40px 32px 80px; }
+
+/* Hero */
+.hero { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 32px; }
+.tag {
+  display: inline-block; padding: 4px 10px; border: 1px solid var(--accent-dim);
+  border-radius: 4px; background: rgba(56,189,248,0.06); color: var(--accent);
+  letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; font-weight: 600;
+  margin-bottom: 14px;
+}
+h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 6px 0 10px; }
+h1 .grad { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.lede { color: var(--text-dim); font-size: 15px; max-width: 880px; }
+.meta { color: var(--text-faint); font-size: 12px; margin-top: 14px; display: flex; gap: 22px; flex-wrap: wrap; }
+.meta span strong { color: var(--text-dim); font-weight: 500; }
+
+/* COI banner */
+.coi {
+  background: rgba(251,191,36,0.06);
+  border: 1px solid rgba(251,191,36,0.25);
+  border-left: 3px solid var(--warn);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 22px 0 0;
+  color: var(--text-dim); font-size: 13px;
+}
+.coi strong { color: var(--warn); font-weight: 600; }
+
+/* KPIs */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 32px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+.kpi .label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
+.kpi .val { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.kpi .sub { font-size: 12px; color: var(--text-faint); margin-top: 6px; }
+.v-good { color: var(--good); }
+.v-warn { color: var(--warn); }
+.v-bad { color: var(--bad); }
+.v-accent { color: var(--accent); }
+.v-info { color: var(--info); }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--border);
+  margin-bottom: 28px; overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  background: none; border: none; color: var(--text-dim); font: inherit;
+  padding: 12px 16px; cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s; font-size: 13px; font-weight: 500;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 8px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab .count {
+  background: var(--border); color: var(--text-dim); padding: 1px 7px;
+  border-radius: 999px; font-size: 11px; font-weight: 600;
+}
+.tab.active .count { background: rgba(56,189,248,0.15); color: var(--accent); }
+
+/* Sections */
+.sec { display: none; }
+.sec.active { display: block; }
+h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 16px; }
+.subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 22px; max-width: 860px; }
+
+/* Headline cards */
+.headlines { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; margin-bottom: 36px; }
+.head-card {
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+  border-radius: 8px; padding: 16px 18px;
+}
+.head-card.tone-bad { border-left-color: var(--bad); }
+.head-card.tone-warn { border-left-color: var(--warn); }
+.head-card.tone-good { border-left-color: var(--good); }
+.head-card.tone-accent { border-left-color: var(--accent); }
+.head-card .h-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+.head-card h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: var(--text); }
+.head-card p { margin: 0; font-size: 13px; color: var(--text-dim); }
+.head-card p + p { margin-top: 8px; }
+
+/* Filters */
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.search {
+  background: var(--card); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 12px; border-radius: 8px; font: inherit; font-size: 13px; min-width: 240px; flex: 1; max-width: 320px;
+}
+.search:focus { outline: none; border-color: var(--accent-dim); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  background: var(--card); border: 1px solid var(--border); color: var(--text-dim);
+  padding: 5px 12px; border-radius: 999px; font-size: 12px; cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.chip:hover { color: var(--text); }
+.chip.active {
+  background: rgba(56,189,248,0.1); border-color: var(--accent-dim); color: var(--accent);
+}
+
+/* Tables */
+.tbl-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 28px; }
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--bg-alt); }
+th {
+  text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+  border-bottom: 1px solid var(--border); user-select: none;
+}
+th.sortable { cursor: pointer; }
+th.sortable:hover { color: var(--text); }
+th .arr { color: var(--text-faint); margin-left: 4px; }
+th.sorted .arr { color: var(--accent); }
+td {
+  padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--border);
+  color: var(--text); vertical-align: top;
+}
+tbody tr { cursor: pointer; transition: background 0.15s; }
+tbody tr:hover { background: var(--card-hover); }
+tbody tr:last-child td { border-bottom: none; }
+.repo-name { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace; font-size: 13px; }
+.repo-name a { color: var(--text); text-decoration: none; }
+.repo-name a:hover { color: var(--accent); }
+.cell-dim { color: var(--text-dim); }
+
+/* Detail row */
+.detail-row { background: var(--bg-alt); }
+.detail-row td {
+  padding: 16px 18px;
+  border-top: 1px dashed var(--border-strong);
+  border-bottom: 1px solid var(--border);
+}
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 24px; }
+.detail-grid .k { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 3px; }
+.detail-grid .v { font-size: 13px; color: var(--text-dim); }
+.detail-notes { margin-top: 14px; font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+.detail-notes strong { color: var(--text); font-weight: 600; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 500; line-height: 1.5; white-space: nowrap; }
+.badge-good { background: rgba(74,222,128,0.13); color: var(--good); }
+.badge-warn { background: rgba(251,191,36,0.13); color: var(--warn); }
+.badge-bad { background: rgba(248,113,113,0.13); color: var(--bad); }
+.badge-info { background: rgba(129,140,248,0.13); color: var(--info); }
+.badge-accent { background: rgba(56,189,248,0.13); color: var(--accent); }
+.badge-neutral { background: var(--border); color: var(--text-dim); }
+
+/* Priority chip */
+.pri { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.pri.p0 { background: rgba(248,113,113,0.18); color: var(--bad); }
+.pri.p1 { background: rgba(251,191,36,0.18); color: var(--warn); }
+.pri.p2 { background: rgba(56,189,248,0.18); color: var(--accent); }
+.pri.p3 { background: rgba(129,140,248,0.18); color: var(--info); }
+.pri.p4 { background: rgba(74,222,128,0.18); color: var(--good); }
+.pri.p5 { background: var(--border); color: var(--text-faint); }
+
+/* Action register */
+.action-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+.action-card .row1 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.action-card .row1 h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); }
+.action-card p { margin: 0; font-size: 13px; color: var(--text-dim); }
+.verb {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--border); color: var(--text-dim);
+}
+
+/* Footer */
+footer {
+  margin-top: 80px; padding-top: 18px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-faint);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .wrap { padding: 24px 18px 60px; }
+  h1 { font-size: 28px; }
+  .kpi .val { font-size: 24px; }
+  th, td { padding: 9px 10px; font-size: 12px; }
+  .hide-mobile { display: none; }
+}
+
+/* Print */
+@media print {
+  body { background: white; color: black; }
+  .tabs, .filter-row, footer, .coi { display: none; }
+  .sec { display: block !important; page-break-before: always; }
+  .sec:first-of-type { page-break-before: avoid; }
+  .head-card, .kpi, .action-card, .tbl-wrap { break-inside: avoid; }
+  th { color: #333; }
+  td { color: #111; border-color: #ddd; }
+  .badge { border: 1px solid #999; color: #111 !important; background: white !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HERO -->
+<section class="hero">
+  <span class="tag">A3 / Days 1–30 · Audit &amp; Align</span>
+  <h1>The Foundation's <span class="grad">GitHub footprint</span> is bigger and messier than it should be.</h1>
+  <p class="lede">~50 public repos under <a href="https://github.com/XRPLF" style="color:var(--accent);text-decoration:none;">github.com/XRPLF</a>. Roughly a third are critical-path (rippled, clio, xrpl.js, xrpl-py, xrpl4j, xrpl-rust, XRPL-Standards, unl, xrpl-dev-portal). The rest splits between Hooks/WASM forks the Foundation inherited, narrow tooling repos, marketing/site fragments, and meta-repos. A meaningful slice has had no commits in &gt;12 months and is invisible to the ecosystem despite living under the Foundation's brand.</p>
+  <div class="meta">
+    <span><strong>Output:</strong> repo registry doc</span>
+    <span><strong>Feeds:</strong> A7 (PR template rollout), M6 (Node Operator Documentation), 2027 budget for SDK maintenance</span>
+    <span><strong>Last updated:</strong> May 29, 2026</span>
+  </div>
+  <div class="coi">
+    <strong>Methodology &amp; caveat.</strong> Repo enumeration was pulled live from <code>github.com/XRPLF</code> on 28&nbsp;May&nbsp;2026 (47–50 public repos, including 2–3 internal-meta entries). Classification (category, ownership, status guess) is based on the SDK audit (A5), the amendments debrief (A4), and direct knowledge of the codebase — <em>not</em> a fresh commit-graph pass per repo. Treat every "Status" cell as a working hypothesis until confirmed against the GitHub API; some calls (e.g. xrpl-cli, xrpl-deserializer-c, sFieldRegistry, Supply-Calculator) are best-guess. Anything you flip from your read, I'll patch into the data layer.
+  </div>
+</section>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi"><div class="label">Total Public Repos</div><div class="val v-accent">~50</div><div class="sub">github.com/XRPLF</div></div>
+  <div class="kpi"><div class="label">Critical-Path</div><div class="val v-good">9</div><div class="sub">Protocol, SDKs, Standards, UNL, docs</div></div>
+  <div class="kpi"><div class="label">Hooks / WASM Inheritance</div><div class="val v-warn">7</div><div class="sub">Forks &amp; bespoke C/WASM repos</div></div>
+  <div class="kpi"><div class="label">Likely Dormant / Dead</div><div class="val v-bad">12+</div><div class="sub">No visible commits &gt;12 mo</div></div>
+  <div class="kpi"><div class="label">Org / Meta Repos</div><div class="val v-info">6</div><div class="sub">.github, actions, ci, packages, foundation, docker</div></div>
+  <div class="kpi"><div class="label">Tooling / Niche</div><div class="val v-info">14</div><div class="sub">CLIs, scripts, frontends, configs</div></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" role="tablist">
+  <button class="tab active" data-tab="overview">Overview <span class="count">7</span></button>
+  <button class="tab" data-tab="protocol">Protocol &amp; Network <span class="count">5</span></button>
+  <button class="tab" data-tab="sdks">SDKs &amp; Libs <span class="count">8</span></button>
+  <button class="tab" data-tab="standards">Standards &amp; Docs <span class="count">5</span></button>
+  <button class="tab" data-tab="hooks">Hooks &amp; WASM <span class="count">7</span></button>
+  <button class="tab" data-tab="tooling">Tooling &amp; Sites <span class="count">14</span></button>
+  <button class="tab" data-tab="org">Org / Meta <span class="count">11</span></button>
+  <button class="tab" data-tab="actions">Actions <span class="count">10</span></button>
+</div>
+
+<!-- OVERVIEW -->
+<section class="sec active" id="overview">
+  <h2>Findings</h2>
+  <p class="subtitle">Seven things worth pulling out from the enumeration. The detail tabs hold the row-level data.</p>
+  <div class="headlines">
+    <div class="head-card tone-bad">
+      <div class="h-label">Inherited Hooks / WASM forks</div>
+      <h3>Foundation owns seven forks no one outside Hooks land needs.</h3>
+      <p><code>llvm-project</code>, <code>wasi-sdk</code>, <code>wasi-libc</code>, <code>wasmi</code>, <code>hook-cleaner-c</code>, <code>hook-macros</code>, <code>Hooks-Homepage</code>. These were inherited when the Foundation absorbed Hooks-era infrastructure. They are not on the mainline development path for amendments and they distort the org's "what does XRPLF actually maintain" story. Decision needed: keep maintained as a Hooks sidechain support kit, transfer to a separate org (e.g. Xahau / Transia), or archive.</p>
+    </div>
+    <div class="head-card tone-bad">
+      <div class="h-label">Likely-dead niche tooling</div>
+      <h3>A dozen repos haven't been touched in over a year.</h3>
+      <p>Best-guess dormant: <code>xrpl-cli</code>, <code>xrpl-deserializer-c</code>, <code>xrpl-node-configurator</code>, <code>validator_config_creator</code>, <code>xbridge-cli</code>, <code>XRPL-Cluster.com</code>, <code>XRPL-Technical-Explorer</code>, <code>xrpl.ws-stats.com-Frontend</code>, <code>Supply-Calculator</code>, <code>Validation-Stream</code>, <code>rpc2ws</code>, <code>DD-IA.v3</code>. Same playbook as the dead SDKs in A5 — each gets <em>archive vs. revive vs. fund-a-maintainer</em>. None should sit unmarked under the Foundation's brand if it's effectively unmaintained.</p>
+    </div>
+    <div class="head-card tone-warn">
+      <div class="h-label">Documentation drift</div>
+      <h3>Two doc surfaces, neither is the canonical XRPL spec.</h3>
+      <p><code>xrpl-dev-portal</code> is the active dev docs site (mirrors xrpl.org), <code>XRPL-Standards</code> hosts the XLS specs, and <code>Understanding_the_XRP_Ledger</code> is a long-form book. Nothing in this set is the formal protocol specification — the closest artefact, Common Prefix's "Common Prefix" spec, lives outside XRPLF entirely. The Documentation Automation SOW (drafted) is the proposed answer to this.</p>
+    </div>
+    <div class="head-card tone-warn">
+      <div class="h-label">Bus-factor concentration</div>
+      <h3>Critical SDKs all sit at bus-factor 1–2.</h3>
+      <p>From the A5 audit: <code>xrpl-py</code>, <code>xrpl.js</code>, <code>xrpl4j</code>, and now <code>xrpl-rust</code> (newly XRPLF-official) are each held up by a small number of named maintainers — mostly Ripple staff (Py/JS), Peersyst / Vet / XRPLF community (Java / Rust). A7 (PR template rollout) is the lightweight surface fix; the real fix is hiring or sponsoring one or two SDK custodians, which is a 2027 budget conversation.</p>
+    </div>
+    <div class="head-card tone-good">
+      <div class="h-label">Recently consolidated</div>
+      <h3><code>xrpl-rust</code> moved into XRPLF — model the next ones on it.</h3>
+      <p>The <code>sephynox/xrpl-rust → XRPLF/xrpl-rust</code> transfer (confirmed in A5 audit, v1.1.0 released Apr&nbsp;2026) is the right pattern: take a healthy community SDK, formally adopt it, fund maintenance. Candidates for the same treatment: <code>xrpl-go</code> (Peersyst's Go lib), <code>xrpl4j</code> (already inside but needs explicit ownership). C# / Swift / Ruby remain in the audit-or-leave bucket from the A5 Brett thread.</p>
+    </div>
+    <div class="head-card tone-accent">
+      <div class="h-label">New Foundation tooling</div>
+      <h3>The release-notifier is live, but the rest of the new tooling layer isn't there yet.</h3>
+      <p><code>xrplf-release-notifier</code> shipped this week, Mattermost notifications flowing. The implied missing siblings — an amendment status dashboard (C1), a UNL candidate tracker, an automated repo health page — should live in the same org under the same brand. Worth registering placeholders before someone else does.</p>
+    </div>
+    <div class="head-card tone-warn">
+      <div class="h-label">Meta-repos need owners</div>
+      <h3><code>.github</code>, <code>actions</code>, <code>ci</code>, <code>docker</code>, <code>packages</code> — who owns these?</h3>
+      <p>Six repos that look like shared org infrastructure (PR templates, reusable workflows, packaging). If A7 (org-wide PR template) is going to ship, <code>.github</code> is where it lives. Confirm who has write access to each before standardising anything, otherwise the rollout will quietly fail for half the repos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PROTOCOL -->
+<section class="sec" id="protocol">
+  <h2>Protocol &amp; Network</h2>
+  <p class="subtitle">The core production surface: reference node, indexer, validator infrastructure. Every change here is amendment-relevant or operator-relevant.</p>
+  <div class="filter-row">
+    <input type="search" class="search" placeholder="Search…" data-target="t-protocol">
+    <div class="chips" data-target="t-protocol">
+      <span class="chip active" data-filter="all">All</span>
+      <span class="chip" data-filter="Active">Active</span>
+      <span class="chip" data-filter="Maintained">Maintained</span>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table id="t-protocol"><thead><tr>
+    <th class="sortable">Repo <span class="arr">↕</span></th>
+    <th class="sortable">Language <span class="arr">↕</span></th>
+    <th class="sortable">Status <span class="arr">↕</span></th>
+    <th class="sortable hide-mobile">Primary Owner <span class="arr">↕</span></th>
+    <th class="hide-mobile">Notes</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- SDKS -->
+<section class="sec" id="sdks">
+  <h2>SDKs &amp; Client Libraries</h2>
+  <p class="subtitle">Official client SDKs hosted under XRPLF. Detailed health from A5 audit; consolidation gaps from the same.</p>
+  <div class="filter-row">
+    <input type="search" class="search" placeholder="Search…" data-target="t-sdks">
+    <div class="chips" data-target="t-sdks">
+      <span class="chip active" data-filter="all">All</span>
+      <span class="chip" data-filter="Active">Active</span>
+      <span class="chip" data-filter="Maintained">Maintained</span>
+      <span class="chip" data-filter="Dormant">Dormant</span>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table id="t-sdks"><thead><tr>
+    <th class="sortable">Repo <span class="arr">↕</span></th>
+    <th class="sortable">Language <span class="arr">↕</span></th>
+    <th class="sortable">Status <span class="arr">↕</span></th>
+    <th class="sortable hide-mobile">Primary Owner <span class="arr">↕</span></th>
+    <th class="hide-mobile">Notes</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- STANDARDS -->
+<section class="sec" id="standards">
+  <h2>Standards &amp; Documentation</h2>
+  <p class="subtitle">Specification repos and the dev-facing documentation surfaces.</p>
+  <div class="filter-row">
+    <input type="search" class="search" placeholder="Search…" data-target="t-standards">
+    <div class="chips" data-target="t-standards">
+      <span class="chip active" data-filter="all">All</span>
+      <span class="chip" data-filter="Active">Active</span>
+      <span class="chip" data-filter="Maintained">Maintained</span>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table id="t-standards"><thead><tr>
+    <th class="sortable">Repo <span class="arr">↕</span></th>
+    <th class="sortable">Language <span class="arr">↕</span></th>
+    <th class="sortable">Status <span class="arr">↕</span></th>
+    <th class="sortable hide-mobile">Primary Owner <span class="arr">↕</span></th>
+    <th class="hide-mobile">Notes</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- HOOKS -->
+<section class="sec" id="hooks">
+  <h2>Hooks &amp; WASM Inheritance</h2>
+  <p class="subtitle">Repos absorbed when the Foundation took over Hooks-era infrastructure. Largely orthogonal to mainline rippled development; decision pending on whether to keep maintained, transfer, or archive.</p>
+  <div class="filter-row">
+    <input type="search" class="search" placeholder="Search…" data-target="t-hooks">
+    <div class="chips" data-target="t-hooks">
+      <span class="chip active" data-filter="all">All</span>
+      <span class="chip" data-filter="Dormant">Dormant</span>
+      <span class="chip" data-filter="Maintained">Maintained</span>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table id="t-hooks"><thead><tr>
+    <th class="sortable">Repo <span class="arr">↕</span></th>
+    <th class="sortable">Language <span class="arr">↕</span></th>
+    <th class="sortable">Status <span class="arr">↕</span></th>
+    <th class="sortable hide-mobile">Upstream</th>
+    <th class="hide-mobile">Notes</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- TOOLING -->
+<section class="sec" id="tooling">
+  <h2>Tooling, Frontends &amp; Niche Repos</h2>
+  <p class="subtitle">CLIs, debugging tools, dashboards, sample apps. Most are useful in isolation; many have stalled.</p>
+  <div class="filter-row">
+    <input type="search" class="search" placeholder="Search…" data-target="t-tooling">
+    <div class="chips" data-target="t-tooling">
+      <span class="chip active" data-filter="all">All</span>
+      <span class="chip" data-filter="Active">Active</span>
+      <span class="chip" data-filter="Maintained">Maintained</span>
+      <span class="chip" data-filter="Dormant">Dormant</span>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table id="t-tooling"><thead><tr>
+    <th class="sortable">Repo <span class="arr">↕</span></th>
+    <th class="sortable">Language <span class="arr">↕</span></th>
+    <th class="sortable">Status <span class="arr">↕</span></th>
+    <th class="sortable hide-mobile">Primary Owner <span class="arr">↕</span></th>
+    <th class="hide-mobile">Notes</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- ORG -->
+<section class="sec" id="org">
+  <h2>Org / Meta Repos</h2>
+  <p class="subtitle">Shared infrastructure across the org: GitHub-level config, reusable workflows, packaging, internal-facing.</p>
+  <div class="filter-row">
+    <input type="search" class="search" placeholder="Search…" data-target="t-org">
+  </div>
+  <div class="tbl-wrap"><table id="t-org"><thead><tr>
+    <th class="sortable">Repo <span class="arr">↕</span></th>
+    <th class="sortable">Language <span class="arr">↕</span></th>
+    <th class="sortable">Status <span class="arr">↕</span></th>
+    <th class="sortable hide-mobile">Purpose</th>
+    <th class="hide-mobile">Notes</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- ACTIONS -->
+<section class="sec" id="actions">
+  <h2>Action Register</h2>
+  <p class="subtitle">P0 — needs decision now. P1 — this quarter. P2/P3 — fold into 2027 budget conversation. Verbs are deliberately verbs: every line should resolve to <em>archive</em>, <em>sponsor</em>, <em>coordinate</em>, <em>document</em>, or <em>flag</em>.</p>
+  <div id="action-list"></div>
+</section>
+
+<footer>
+  Data layer is embedded in this page. Source: XRPLF org enumeration (28 May 2026) cross-referenced with A5 SDK/wallet audit (21 May 2026) and A4 amendment debrief (16 May 2026). Per-repo status guesses need a fresh GitHub-API verification pass before any line in the action register triggers a write action.
+</footer>
+
+</div>
+
+<script>
+const REPOS = [
+  // Protocol & Network
+  {name:"rippled", url:"https://github.com/XRPLF/rippled", cat:"protocol", lang:"C++", status:"Active", owner:"Ripple", notes:"Reference implementation of the XRPL protocol. Primary production codebase; amendment-bearing.", tags:["critical","amendment"]},
+  {name:"clio", url:"https://github.com/XRPLF/clio", cat:"protocol", lang:"C++", status:"Active", owner:"Ripple", notes:"Reporting / API node. Lower-latency RPC reads against archived ledger state."},
+  {name:"unl", url:"https://github.com/XRPLF/unl", cat:"protocol", lang:"YAML", status:"Active", owner:"Foundation (Matt Mankins)", notes:"UNL publication. Yaml-based PR flow → signed → promoted on first Tuesday of the month. Documented in UNL Update Overview presentation."},
+  {name:"rippled-portable-builds", url:"https://github.com/XRPLF/rippled-portable-builds", cat:"protocol", lang:"Shell", status:"Maintained", owner:"Foundation", notes:"Portable rippled distribution. Companion to the package builder."},
+  {name:"sFieldRegistry", url:"https://github.com/XRPLF/sFieldRegistry", cat:"protocol", lang:"Markdown", status:"Maintained", owner:"Foundation", notes:"Coordination registry for SField IDs across amendments / forks. Prevents collisions."},
+
+  // SDKs & Libs
+  {name:"xrpl.js", url:"https://github.com/XRPLF/xrpl.js", cat:"sdk", lang:"TypeScript", status:"Active", owner:"Ripple", notes:"Flagship JS/TS SDK. Monorepo also containing ripple-binary-codec, ripple-address-codec, ripple-keypairs. Standalone publishes of ripple-keypairs / ripple-address-codec stale since Feb 2024 (A5 supply-chain flag)."},
+  {name:"xrpl-py", url:"https://github.com/XRPLF/xrpl-py", cat:"sdk", lang:"Python", status:"Active", owner:"Ripple", notes:"Official Python SDK. Healthy release cadence."},
+  {name:"xrpl4j", url:"https://github.com/XRPLF/xrpl4j", cat:"sdk", lang:"Java", status:"Active", owner:"Foundation / community (Nathan Nichols et al.)", notes:"Official Java SDK. v6.0.0 Jan 2026 (per A5 audit). Maintenance funding is part of the 2027 budget conversation with Brett."},
+  {name:"xrpl-rust", url:"https://github.com/XRPLF/xrpl-rust", cat:"sdk", lang:"Rust", status:"Active", owner:"Foundation / Sephynox", notes:"Transferred from sephynox to XRPLF (confirmed via repo redirect in A5 audit). v1.1.0 Apr 2026. Model for future SDK consolidations."},
+  {name:"xrpl-go", url:"https://github.com/XRPLF/xrpl-go", cat:"sdk", lang:"Go", status:"Maintained", owner:"Peersyst", notes:"Go SDK. Peersyst-led. Possible candidate for the same XRPLF-adoption pattern as xrpl-rust."},
+  {name:"xrpl4j-sample", url:"https://github.com/XRPLF/xrpl4j-sample", cat:"sdk", lang:"Java", status:"Dormant", owner:"Foundation", notes:"Example app for xrpl4j. Pinned to older versions; should track xrpl4j v6 release."},
+  {name:"xrpl-deserializer-c", url:"https://github.com/XRPLF/xrpl-deserializer-c", cat:"sdk", lang:"C", status:"Dormant", owner:"Unknown", notes:"C deserializer. Niche utility; classify as audit-or-archive."},
+  {name:"mpt-crypto", url:"https://github.com/XRPLF/mpt-crypto", cat:"sdk", lang:"C++", status:"Maintained", owner:"Foundation", notes:"MPT cryptographic primitives. Tied to MPT amendment family."},
+
+  // Standards & Docs
+  {name:"XRPL-Standards", url:"https://github.com/XRPLF/XRPL-Standards", cat:"standards", lang:"Markdown", status:"Active", owner:"Foundation / community", notes:"Home of all XLS standards. Active proposal flow."},
+  {name:"xrpl-dev-portal", url:"https://github.com/XRPLF/xrpl-dev-portal", cat:"standards", lang:"JavaScript / MD", status:"Active", owner:"Ripple devrel", notes:"xrpl.org content. Live, primary dev-facing docs surface."},
+  {name:"Understanding_the_XRP_Ledger", url:"https://github.com/XRPLF/Understanding_the_XRP_Ledger", cat:"standards", lang:"Markdown", status:"Maintained", owner:"Community", notes:"Long-form book / explainer. Not a formal spec."},
+  {name:"CTID", url:"https://github.com/XRPLF/CTID", cat:"standards", lang:"Spec / MD", status:"Maintained", owner:"Foundation", notes:"Cross-chain Transaction ID format. Spec + reference impls."},
+  {name:"xrpl-docs-data-scripts", url:"https://github.com/XRPLF/xrpl-docs-data-scripts", cat:"standards", lang:"Python", status:"Dormant", owner:"Ripple devrel", notes:"Data-gathering scripts that feed xrpl.org content. Verify if still in pipeline."},
+
+  // Hooks & WASM
+  {name:"llvm-project", url:"https://github.com/XRPLF/llvm-project", cat:"hooks", lang:"C++", status:"Maintained", owner:"Foundation (Hooks)", notes:"Fork of upstream llvm. Inherited from Hooks toolchain. Decision: keep / transfer / archive.", upstream:"llvm/llvm-project"},
+  {name:"wasi-sdk", url:"https://github.com/XRPLF/wasi-sdk", cat:"hooks", lang:"C", status:"Maintained", owner:"Foundation (Hooks)", notes:"Fork of WASI SDK. Used by the hook compile toolchain.", upstream:"WebAssembly/wasi-sdk"},
+  {name:"wasi-libc", url:"https://github.com/XRPLF/wasi-libc", cat:"hooks", lang:"C", status:"Maintained", owner:"Foundation (Hooks)", notes:"Fork of wasi-libc. Same lineage.", upstream:"WebAssembly/wasi-libc"},
+  {name:"wasmi", url:"https://github.com/XRPLF/wasmi", cat:"hooks", lang:"Rust", status:"Maintained", owner:"Foundation (Hooks)", notes:"WASM interpreter fork. Hooks runtime dependency.", upstream:"wasmi-labs/wasmi"},
+  {name:"hook-cleaner-c", url:"https://github.com/XRPLF/hook-cleaner-c", cat:"hooks", lang:"C", status:"Maintained", owner:"Foundation (Hooks)", notes:"Hook WASM post-processor.", upstream:"-"},
+  {name:"hook-macros", url:"https://github.com/XRPLF/hook-macros", cat:"hooks", lang:"C", status:"Maintained", owner:"Foundation (Hooks)", notes:"Hook macro library.", upstream:"-"},
+  {name:"Hooks-Homepage", url:"https://github.com/XRPLF/Hooks-Homepage", cat:"hooks", lang:"HTML / JS", status:"Dormant", owner:"Foundation (Hooks)", notes:"Marketing site for Hooks. Likely orphaned with the Foundation no longer driving Hooks-on-XRPL.", upstream:"-"},
+
+  // Tooling & Sites
+  {name:"xrplf-release-notifier", url:"https://github.com/XRPLF/xrplf-release-notifier", cat:"tooling", lang:"TypeScript", status:"Active", owner:"Foundation (Denis Angell)", notes:"Mattermost notifier for new XRPLF releases. Live as of this week."},
+  {name:"xbridge-cli", url:"https://github.com/XRPLF/xbridge-cli", cat:"tooling", lang:"Python", status:"Dormant", owner:"Ripple research", notes:"Cross-chain bridge CLI. Tied to dormant sidechain work."},
+  {name:"xrpld-debug-stream", url:"https://github.com/XRPLF/xrpld-debug-stream", cat:"tooling", lang:"C++", status:"Maintained", owner:"Foundation", notes:"Streaming debug interface for rippled. Useful in incident response (C2 playbook)."},
+  {name:"xrpl-cli", url:"https://github.com/XRPLF/xrpl-cli", cat:"tooling", lang:"JavaScript", status:"Dormant", owner:"Unknown", notes:"Generic XRPL CLI. Overlaps with xbridge-cli and validator_config_creator. Probable archive candidate."},
+  {name:"xrpl-node-configurator", url:"https://github.com/XRPLF/xrpl-node-configurator", cat:"tooling", lang:"Shell / Python", status:"Dormant", owner:"Unknown", notes:"Node config helper. Feeds M6 (Node Operator Documentation) if revived."},
+  {name:"validator_config_creator", url:"https://github.com/XRPLF/validator_config_creator", cat:"tooling", lang:"Python", status:"Dormant", owner:"Unknown", notes:"Validator config helper. Overlaps with node-configurator."},
+  {name:"XRPL-Technical-Explorer", url:"https://github.com/XRPLF/XRPL-Technical-Explorer", cat:"tooling", lang:"TypeScript", status:"Dormant", owner:"Foundation", notes:"Lower-level explorer. Possibly superseded by community explorers (Bithomp, XRPScan)."},
+  {name:"XRPL-Cluster.com", url:"https://github.com/XRPLF/XRPL-Cluster.com", cat:"tooling", lang:"HTML", status:"Dormant", owner:"Unknown", notes:"Cluster monitor site. Verify live status of the domain itself."},
+  {name:"xrpl.ws-stats.com-Frontend", url:"https://github.com/XRPLF/xrpl.ws-stats.com-Frontend", cat:"tooling", lang:"JavaScript", status:"Dormant", owner:"Unknown", notes:"Network stats frontend. Same as Cluster.com — needs a domain check."},
+  {name:"Validation-Stream", url:"https://github.com/XRPLF/Validation-Stream", cat:"tooling", lang:"JS / Python", status:"Dormant", owner:"Unknown", notes:"Validation streaming utility. Probable overlap with debug-stream."},
+  {name:"Supply-Calculator", url:"https://github.com/XRPLF/Supply-Calculator", cat:"tooling", lang:"Python / JS", status:"Dormant", owner:"Unknown", notes:"XRP supply calculator. Likely tied to communications / disclosures."},
+  {name:"DD-IA.v3", url:"https://github.com/XRPLF/DD-IA.v3", cat:"tooling", lang:"Unknown", status:"Dormant", owner:"Unknown", notes:"Unclear purpose from name alone. Audit candidate."},
+  {name:"rpc2ws", url:"https://github.com/XRPLF/rpc2ws", cat:"tooling", lang:"JavaScript", status:"Dormant", owner:"Unknown", notes:"RPC ↔ WS bridge. Likely superseded by rippled's native WS support."},
+  {name:"rippled-historical-database", url:"https://github.com/XRPLF/rippled-historical-database", cat:"tooling", lang:"JavaScript", status:"Dormant", owner:"Ripple", notes:"Older historical indexer. Verify if still relevant after Clio took over."},
+
+  // Org / Meta
+  {name:".github", url:"https://github.com/XRPLF/.github", cat:"org", lang:"Markdown", status:"Maintained", owner:"Foundation admins", notes:"Org-level GitHub config. A7 (PR template rollout) lives here."},
+  {name:"actions", url:"https://github.com/XRPLF/actions", cat:"org", lang:"YAML", status:"Maintained", owner:"Foundation admins", notes:"Reusable GitHub Actions. Audit for unused workflows."},
+  {name:"ci", url:"https://github.com/XRPLF/ci", cat:"org", lang:"Shell / YAML", status:"Maintained", owner:"Foundation admins", notes:"CI tooling and scripts."},
+  {name:"docker", url:"https://github.com/XRPLF/docker", cat:"org", lang:"Dockerfile", status:"Maintained", owner:"Foundation admins", notes:"Docker images / packaging."},
+  {name:"packages", url:"https://github.com/XRPLF/packages", cat:"org", lang:"Shell", status:"Maintained", owner:"Foundation admins", notes:"Distro packaging (rippled, clio)."},
+  {name:"foundation", url:"https://github.com/XRPLF/foundation", cat:"org", lang:"Markdown", status:"Maintained", owner:"Foundation admins", notes:"Foundation-facing org repo (governance, public-facing notes)."},
+
+  // Fork-only entries (counted under hooks already, but conan is its own category)
+  {name:"conan-center-index", url:"https://github.com/XRPLF/conan-center-index", cat:"org", lang:"Python / YAML", status:"Maintained", owner:"Ripple", notes:"Fork of conan-io/conan-center-index. Used to publish rippled / clio dependencies.", upstream:"conan-io/conan-center-index"},
+  {name:"clio-gha", url:"https://github.com/XRPLF/clio-gha", cat:"org", lang:"YAML", status:"Maintained", owner:"Clio team", notes:"Clio GitHub Actions."},
+  {name:"clio-packages", url:"https://github.com/XRPLF/clio-packages", cat:"org", lang:"Shell", status:"Maintained", owner:"Clio team", notes:"Clio package builds."},
+  {name:"typescript-style", url:"https://github.com/XRPLF/typescript-style", cat:"org", lang:"JSON / TS", status:"Maintained", owner:"Ripple", notes:"Shared TS style config for xrpl.js + sibling repos."},
+  {name:"api", url:"https://github.com/XRPLF/api", cat:"org", lang:"Unknown", status:"Dormant", owner:"Unknown", notes:"Generic name; intent unclear without inspection. Audit candidate."},
+];
+
+const ACTIONS = [
+  {pri:"p0", verb:"Decide", title:"Hooks/WASM forks — keep, transfer, or archive?", body:"Seven repos (llvm-project, wasi-sdk, wasi-libc, wasmi, hook-cleaner-c, hook-macros, Hooks-Homepage). Decision needs to land before A7 (PR template rollout) so the rollout doesn't include them by accident. Owner: Denis + Brett."},
+  {pri:"p0", verb:"Verify", title:"Run a fresh commit-graph pass on every repo", body:"Status guesses in this doc are inference from A5 + A4 + direct knowledge — not freshly verified. Single API pass over /repos and /repos/{name}/commits gives ground truth for the next conversation."},
+  {pri:"p1", verb:"Archive", title:"Likely-dormant tooling repos", body:"xrpl-cli, xrpl-deserializer-c, xrpl-node-configurator, validator_config_creator, xbridge-cli, XRPL-Cluster.com, XRPL-Technical-Explorer, xrpl.ws-stats.com-Frontend, Supply-Calculator, Validation-Stream, rpc2ws, DD-IA.v3, rippled-historical-database. Same archive-or-revive flow as the dead SDKs in A5."},
+  {pri:"p1", verb:"Adopt", title:"Promote xrpl-go to XRPLF-official", body:"Mirror the xrpl-rust adoption: confirm with Peersyst, transfer repo, fund maintenance. Sets up the multi-language SDK story for Brett's board ecosystem update."},
+  {pri:"p1", verb:"Audit", title:"Confirm owners of the six org/meta repos", body:".github, actions, ci, docker, packages, foundation. A7 (PR template rollout) lives in .github. Confirm write access matrix before standardising; otherwise the rollout silently misses repos."},
+  {pri:"p2", verb:"Document", title:"Per-repo registry in /XRPLF/.github", body:"Output of this audit becomes a registry markdown in the .github repo: each repo's purpose, owner, status, contact. Replaces the implicit knowledge that lives in named people's heads today."},
+  {pri:"p2", verb:"Sponsor", title:"SDK custodianship in 2027 budget", body:"From A5 + Brett's comment thread: anything kept under XRPLF needs an audit (2026) and a maintenance commitment (2027). xrpl4j named explicitly; Java/C#/Swift bucket needs a budget line."},
+  {pri:"p3", verb:"Coordinate", title:"Documentation Automation SOW lands the spec problem", body:"The drafted SOW (XRPLD_Documentation_System_SOW) is the proposed fix for documentation drift — initial doc pass + per-PR drift detection + CI thresholds. Lands inside rippled / clio first, then expand."},
+  {pri:"p3", verb:"Flag", title:"Standalone publishes of ripple-keypairs / ripple-address-codec are stale", body:"From A5 supply-chain note. Monorepo (xrpl.js) is healthy, but the standalone npm publishes haven't moved since Feb 2024 (~27 months). Worth a release pass even if no code changed."},
+  {pri:"p5", verb:"Monitor", title:"Hooks-Homepage", body:"Marketing site for Hooks. If Hooks work formally exits the Foundation roadmap, the site goes with it. No urgency until that decision lands."},
+];
+
+// State
+const tables = ["protocol","sdks","standards","hooks","tooling","org"];
+const sortState = {};
+tables.forEach(t => sortState["t-"+t] = {col: null, dir: 1});
+
+// Filter rows by category and active filter
+function renderTable(cat) {
+  const tableId = "t-" + cat;
+  const tbody = document.querySelector("#"+tableId+" tbody");
+  const search = document.querySelector(`.search[data-target="${tableId}"]`);
+  const activeChip = document.querySelector(`.chips[data-target="${tableId}"] .chip.active`);
+  const filterVal = activeChip ? activeChip.getAttribute("data-filter") : "all";
+  const q = (search ? search.value : "").toLowerCase().trim();
+
+  let rows = REPOS.filter(r => r.cat === cat);
+  if (filterVal !== "all") rows = rows.filter(r => r.status === filterVal);
+  if (q) rows = rows.filter(r => {
+    const hay = `${r.name} ${r.lang} ${r.status} ${r.owner||""} ${r.notes||""}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  const st = sortState[tableId];
+  if (st.col) {
+    rows.sort((a,b) => {
+      const av = (a[st.col]||"").toString().toLowerCase();
+      const bv = (b[st.col]||"").toString().toLowerCase();
+      return av < bv ? -st.dir : av > bv ? st.dir : 0;
+    });
+  }
+
+  tbody.innerHTML = rows.map((r,i) => {
+    const statusBadge = badge(r.status);
+    const ownerCell = cat === "hooks" ? (r.upstream || "—") : (r.owner || "—");
+    return `
+      <tr data-idx="${i}" data-cat="${cat}">
+        <td class="repo-name"><a href="${r.url}" target="_blank" rel="noopener">${r.name}</a></td>
+        <td class="cell-dim">${r.lang}</td>
+        <td>${statusBadge}</td>
+        <td class="cell-dim hide-mobile">${escape(ownerCell)}</td>
+        <td class="cell-dim hide-mobile">${escape(r.notes || "")}</td>
+      </tr>
+      <tr class="detail-row" data-detail="${i}-${cat}" style="display:none">
+        <td colspan="5">
+          <div class="detail-grid">
+            <div><div class="k">URL</div><div class="v"><a href="${r.url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">${r.url}</a></div></div>
+            <div><div class="k">Category</div><div class="v">${categoryLabel(r.cat)}</div></div>
+            <div><div class="k">Language</div><div class="v">${r.lang}</div></div>
+            <div><div class="k">Status (guess)</div><div class="v">${r.status}</div></div>
+            <div><div class="k">${cat === "hooks" ? "Upstream" : "Primary Owner"}</div><div class="v">${escape(ownerCell)}</div></div>
+          </div>
+          <div class="detail-notes">${escape(r.notes||"—")}</div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function escape(s) {
+  return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+function badge(s) {
+  const map = {
+    "Active": "badge-good",
+    "Maintained": "badge-info",
+    "Dormant": "badge-warn",
+    "Dead": "badge-bad",
+    "Archived": "badge-neutral"
+  };
+  return `<span class="badge ${map[s]||"badge-neutral"}">${s}</span>`;
+}
+
+function categoryLabel(c) {
+  return {
+    protocol:"Protocol & Network", sdk:"SDK / Lib", standards:"Standards & Docs",
+    hooks:"Hooks & WASM", tooling:"Tooling / Site", org:"Org / Meta"
+  }[c] || c;
+}
+
+// Tabs
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".sec").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById(t.getAttribute("data-tab")).classList.add("active");
+    window.scrollTo({top: 0, behavior: "smooth"});
+  });
+});
+
+// Search inputs
+document.querySelectorAll(".search").forEach(s => {
+  s.addEventListener("input", () => {
+    const tableId = s.getAttribute("data-target");
+    const cat = tableId.replace("t-","");
+    renderTable(cat);
+  });
+});
+
+// Filter chips
+document.querySelectorAll(".chips").forEach(group => {
+  group.querySelectorAll(".chip").forEach(c => {
+    c.addEventListener("click", () => {
+      group.querySelectorAll(".chip").forEach(x => x.classList.remove("active"));
+      c.classList.add("active");
+      const cat = group.getAttribute("data-target").replace("t-","");
+      renderTable(cat);
+    });
+  });
+});
+
+// Sort
+document.querySelectorAll("th.sortable").forEach(th => {
+  th.addEventListener("click", () => {
+    const table = th.closest("table");
+    const tableId = table.id;
+    const idx = Array.from(th.parentNode.children).indexOf(th);
+    const colMap = ["name","lang","status","owner","notes"];
+    const col = colMap[idx] || "name";
+    const st = sortState[tableId];
+    if (st.col === col) st.dir = -st.dir;
+    else { st.col = col; st.dir = 1; }
+    table.querySelectorAll("th").forEach(x => x.classList.remove("sorted"));
+    th.classList.add("sorted");
+    th.querySelector(".arr").textContent = st.dir === 1 ? "▲" : "▼";
+    renderTable(tableId.replace("t-",""));
+  });
+});
+
+// Row expand
+document.addEventListener("click", e => {
+  const row = e.target.closest("tr[data-idx]");
+  if (!row) return;
+  if (e.target.tagName === "A") return;
+  const idx = row.getAttribute("data-idx");
+  const cat = row.getAttribute("data-cat");
+  const det = document.querySelector(`tr[data-detail="${idx}-${cat}"]`);
+  if (det) det.style.display = det.style.display === "none" ? "table-row" : "none";
+});
+
+// Render all tables
+tables.forEach(renderTable);
+
+// Render actions
+document.getElementById("action-list").innerHTML = ACTIONS.map(a => `
+  <div class="action-card">
+    <div class="row1">
+      <span class="pri ${a.pri}">${a.pri.toUpperCase()}</span>
+      <span class="verb">${a.verb}</span>
+      <h4>${escape(a.title)}</h4>
+    </div>
+    <p>${escape(a.body)}</p>
+  </div>
+`).join("");
+</script>
+</body>
+</html>
